@@ -1,0 +1,908 @@
+{% extends 'base.html' %}
+
+{% block title %}Disciplinas - Sistema Gimnasio MMA{% endblock %}
+
+{% block page_title %}Gestión de Disciplinas{% endblock %}
+{% block page_subtitle %}Administra las disciplinas, precios y horarios del gimnasio{% endblock %}
+
+{% block header_buttons %}
+<button type="button" class="btn btn-success-custom me-2" data-bs-toggle="modal" data-bs-target="#crearDisciplinaModal">
+    <i class="fas fa-plus-circle me-2"></i>Nueva Disciplina
+</button>
+<a href="{% url 'precios_rapidos' %}" class="btn btn-primary-custom">
+    <i class="fas fa-tags me-2"></i>Gestión de Precios
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Estadísticas Rápidas -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Total Disciplinas</div>
+                    <div class="stat-value text-primary">{{ total_disciplinas }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Total Inscripciones</div>
+                    <div class="stat-value text-success">{{ total_inscripciones }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Ingresos Mensuales</div>
+                    <div class="stat-value text-success">${{ ingresos_mensuales }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Horarios Activos</div>
+                    <div class="stat-value text-info">
+                        {% with total=0 %}
+                        {% for disciplina in disciplinas %}
+                            {% with total=total|add:disciplina.horarios.count %}{% endwith %}
+                        {% endfor %}
+                        {{ total|default:0 }}
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros y Búsqueda -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" id="searchInput" class="form-control form-control-custom" 
+                                   placeholder="Buscar por nombre de disciplina...">
+                            <button class="btn btn-outline-secondary" type="button" onclick="buscarDisciplinas()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-end gap-2">
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+                                        data-bs-toggle="dropdown">
+                                    <i class="fas fa-sort me-2"></i>Ordenar por
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="ordenarPor('nombre')">
+                                        Nombre (A-Z)
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="ordenarPor('precio')">
+                                        Precio (Menor a Mayor)
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="ordenarPor('inscripciones')">
+                                        Inscripciones (Mayor a Menor)
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="ordenarPor('ingresos')">
+                                        Ingresos (Mayor a Menor)
+                                    </a></li>
+                                </ul>
+                            </div>
+                            <button class="btn btn-outline-secondary" onclick="exportarDisciplinas()">
+                                <i class="fas fa-download me-2"></i>Exportar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Disciplinas -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Todas las Disciplinas</h5>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-primary me-3">{{ disciplinas|length }} disciplinas</span>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="mostrarInactivas" 
+                                   onchange="filtrarActivas()">
+                            <label class="form-check-label" for="mostrarInactivas">
+                                Mostrar inactivas
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                {% if disciplinas %}
+                <div class="table-responsive">
+                    <table class="table table-custom mb-0" id="disciplinasTable">
+                        <thead>
+                            <tr>
+                                <th width="40" class="text-center">
+                                    <input type="checkbox" id="selectAll" onclick="toggleSelectAll()">
+                                </th>
+                                <th>Disciplina</th>
+                                <th>Precio Mensual</th>
+                                <th>Clase Suelta</th>
+                                <th>Inscripciones</th>
+                                <th>Ingreso Mensual</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for disciplina in disciplinas %}
+                            <tr data-disciplina-id="{{ disciplina.id }}" 
+                                data-activa="{% if disciplina.activa %}true{% else %}false{% endif %}">
+                                <td class="text-center">
+                                    <input type="checkbox" class="disciplina-checkbox" 
+                                           value="{{ disciplina.id }}">
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <div class="disciplina-icon bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" 
+                                                 style="width: 40px; height: 40px;">
+                                                <i class="fas fa-fist-raised text-primary"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <strong>{{ disciplina.get_nombre_display }}</strong>
+                                            {% if not disciplina.activa %}
+                                            <span class="badge bg-warning ms-2">Inactiva</span>
+                                            {% endif %}
+                                            <br>
+                                            <small class="text-muted">{{ disciplina.descripcion|truncatechars:50|default:"Sin descripción" }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong class="text-success">${{ disciplina.precio_mensual }}</strong>
+                                    <br>
+                                    <small class="text-muted">Mensual</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">${{ disciplina.precio_clase_suelta }}</span>
+                                    <br>
+                                    <small class="text-muted">Por clase</small>
+                                </td>
+                                <td>
+                                    {% with inscripciones=disciplina.inscripcion_set.count %}
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                            <div class="progress-bar {% if inscripciones > 0 %}bg-success{% else %}bg-secondary{% endif %}" 
+                                                 style="width: {{ inscripciones }}%"></div>
+                                        </div>
+                                        <span class="badge {% if inscripciones > 0 %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {{ inscripciones }}
+                                        </span>
+                                    </div>
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with ingresos=disciplina.inscripcion_set.count|default:0|add:0|floatformat:2 %}
+                                    {% widthratio disciplina.precio_mensual 1 disciplina.inscripcion_set.count as total %}
+                                    <strong>${{ total|default:0 }}</strong>
+                                    <br>
+                                    <small class="text-muted">/ mes</small>
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'disciplina_update' disciplina.id %}" 
+                                           class="btn btn-sm btn-outline-secondary" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'admin:disciplinas_horario_add' %}?disciplina={{ disciplina.id }}" 
+                                           class="btn btn-sm btn-outline-primary" title="Agregar horario">
+                                            <i class="fas fa-clock"></i>
+                                        </a>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-info dropdown-toggle" 
+                                                    type="button" data-bs-toggle="dropdown">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <a class="dropdown-item" href="#" 
+                                                       onclick="copiarPrecio('{{ disciplina.precio_mensual }}')">
+                                                        <i class="fas fa-copy me-2"></i>Copiar precio
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" 
+                                                       onclick="generarCodigoQR('{{ disciplina.id }}')">
+                                                        <i class="fas fa-qrcode me-2"></i>Generar QR
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    {% if disciplina.activa %}
+                                                    <a class="dropdown-item text-danger" href="#" 
+                                                       onclick="desactivarDisciplina({{ disciplina.id }})">
+                                                        <i class="fas fa-ban me-2"></i>Desactivar
+                                                    </a>
+                                                    {% else %}
+                                                    <a class="dropdown-item text-success" href="#" 
+                                                       onclick="activarDisciplina({{ disciplina.id }})">
+                                                        <i class="fas fa-check me-2"></i>Activar
+                                                    </a>
+                                                    {% endif %}
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Acciones en lote -->
+                <div class="card-footer bg-white border-top-0" id="accionesLote" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span id="seleccionadosCount">0</span> disciplinas seleccionadas
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-danger btn-sm" 
+                                    onclick="desactivarSeleccionadas()">
+                                <i class="fas fa-ban me-1"></i>Desactivar
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" 
+                                    onclick="activarSeleccionadas()">
+                                <i class="fas fa-check me-1"></i>Activar
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" 
+                                    onclick="aplicarCambioPrecio()">
+                                <i class="fas fa-tag me-1"></i>Cambiar precio
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-list-alt fa-4x text-muted"></i>
+                    </div>
+                    <h5 class="text-muted mb-3">No hay disciplinas registradas</h5>
+                    <p class="text-muted mb-4">Comienza agregando tu primera disciplina al sistema.</p>
+                    <button type="button" class="btn btn-success-custom" data-bs-toggle="modal" data-bs-target="#crearDisciplinaModal">
+                        <i class="fas fa-plus-circle me-2"></i>Crear Primera Disciplina
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="row mt-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Distribución de Ingresos por Disciplina</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for disciplina in disciplinas|slice:":6" %}
+                            {% widthratio disciplina.precio_mensual 1 disciplina.inscripcion_set.count as ingresos %}
+                            {% if ingresos > 0 %}
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span>{{ disciplina.get_nombre_display }}</span>
+                                    <strong>${{ ingresos|default:0 }}</strong>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar" 
+                                         style="width: {{ ingresos|floatformat:0 }}%"></div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% empty %}
+                            <div class="col-12 text-center py-3">
+                                <p class="text-muted mb-0">No hay datos de ingresos disponibles</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Consejos Rápidos</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6 class="small text-uppercase text-muted mb-2">Optimiza precios</h6>
+                            <p class="small text-muted mb-0">
+                                Revisa regularmente los precios según la demanda y competencia.
+                            </p>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="small text-uppercase text-muted mb-2">Combos recomendados</h6>
+                            <p class="small text-muted mb-0">
+                                Crea combos con disciplinas complementarias para aumentar ventas.
+                            </p>
+                        </div>
+                        <div>
+                            <h6 class="small text-uppercase text-muted mb-2">Horarios estratégicos</h6>
+                            <p class="small text-muted mb-0">
+                                Distribuye horarios según la demanda de cada disciplina.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para creación rápida de disciplina -->
+<div class="modal fade" id="crearDisciplinaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear Nueva Disciplina</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'disciplina_create' %}" id="formCrearDisciplina">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre de la Disciplina *</label>
+                                <select name="nombre" class="form-control form-control-custom" required>
+                                    <option value="">Seleccionar disciplina...</option>
+                                    <option value="MMA">MMA (Mixed Martial Arts)</option>
+                                    <option value="LUTA_LIVRE">Luta Livre</option>
+                                    <option value="JIU_JITSU">Jiu Jitsu Brasileño</option>
+                                    <option value="MUAY_THAI">Muay Thai</option>
+                                    <option value="KICKBOXING">Kickboxing</option>
+                                    <option value="PARKOUR">Parkour</option>
+                                    <option value="WRESTLING">Wrestling</option>
+                                    <option value="BOXEO">Boxeo</option>
+                                    <option value="FUNCIONAL">Entrenamiento Funcional</option>
+                                    <option value="ESTA">ESTA (Entrenamiento Especial)</option>
+                                </select>
+                                <small class="text-muted">Selecciona de la lista de disciplinas disponibles</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Precio Mensual *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text" name="precio_mensual" 
+                                           class="form-control form-control-custom text-end" 
+                                           value="5000" required
+                                           oninput="formatarPrecio(this)">
+                                </div>
+                                <small class="text-muted">Precio por mes de acceso ilimitado</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Precio Clase Suelta</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text" name="precio_clase_suelta" 
+                                           class="form-control form-control-custom text-end" 
+                                           value="500"
+                                           oninput="formatarPrecio(this)">
+                                </div>
+                                <small class="text-muted">
+                                    <span class="text-muted" id="porcentajeClase">(10% del mensual)</span>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Estado</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="activa" id="activa" checked>
+                                    <label class="form-check-label" for="activa">
+                                        Disciplina activa y disponible
+                                    </label>
+                                </div>
+                                <small class="text-muted">Desactívala temporalmente si no está disponible</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción (Opcional)</label>
+                        <textarea name="descripcion" class="form-control form-control-custom" 
+                                  rows="3" placeholder="Describe la disciplina, sus beneficios, requisitos..."></textarea>
+                        <div class="d-flex justify-content-between mt-1">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Esta descripción se mostrará a los alumnos
+                            </small>
+                            <small id="contadorDesc" class="text-muted">0/250 caracteres</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Resumen de precios -->
+                    <div class="alert alert-light border mt-3">
+                        <div class="row">
+                            <div class="col-md-4 text-center">
+                                <div class="display-6 text-success mb-1" id="previewMensual">$5,000</div>
+                                <small class="text-muted">Mensual</small>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <div class="display-6 text-secondary mb-1" id="previewClase">$500</div>
+                                <small class="text-muted">Clase suelta</small>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <div class="display-6 text-primary mb-1" id="previewSemanal">$1,250</div>
+                                <small class="text-muted">Semanal (aprox.)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary-custom">
+                        <i class="fas fa-save me-2"></i>Crear Disciplina
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cambio de precio en lote -->
+<div class="modal fade" id="cambioPrecioModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cambiar Precio en Lote</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nuevo Precio Mensual</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="text" id="nuevoPrecioMensual" 
+                               class="form-control form-control-custom text-end" 
+                               value="5000"
+                               oninput="formatarPrecio(this)">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Calcular automáticamente clase suelta</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" 
+                               id="calcularClaseSuelta" checked>
+                        <label class="form-check-label" for="calcularClaseSuelta">
+                            Clase suelta = 10% del precio mensual
+                        </label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nuevo Precio Clase Suelta</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="text" id="nuevoPrecioClase" 
+                               class="form-control form-control-custom text-end" 
+                               value="500"
+                               oninput="formatarPrecio(this)">
+                    </div>
+                </div>
+                <div class="alert alert-info alert-custom">
+                    <small>
+                        <i class="fas fa-info-circle me-2"></i>
+                        Esta acción afectará a <span id="disciplinasSeleccionadasCount">0</span> disciplinas
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-primary-custom" onclick="confirmarCambioPrecio()">
+                    <i class="fas fa-check me-2"></i>Aplicar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Variables globales
+    let disciplinasSeleccionadas = new Set();
+
+    // Formatear precios mientras se escribe
+    function formatarPrecio(input) {
+        let value = input.value.replace(/[^0-9]/g, '');
+        if (value) {
+            value = parseInt(value, 10);
+            input.value = '$' + value.toLocaleString('es-AR');
+            
+            // Si es el precio mensual y está chequeado calcular automáticamente
+            if (input.name === 'precio_mensual' || input.id === 'nuevoPrecioMensual') {
+                const porcentajeElement = document.getElementById('porcentajeClase');
+                const calcularCheckbox = document.getElementById('calcularClaseSuelta');
+                const claseSueltaInput = document.querySelector('input[name="precio_clase_suelta"]') || 
+                                        document.getElementById('nuevoPrecioClase');
+                
+                if (calcularCheckbox && calcularCheckbox.checked && claseSueltaInput) {
+                    const precioClase = Math.round(value * 0.1);
+                    claseSueltaInput.value = '$' + precioClase.toLocaleString('es-AR');
+                    if (porcentajeElement) {
+                        porcentajeElement.textContent = `(10% del mensual)`;
+                    }
+                }
+                
+                // Actualizar previsualizaciones
+                actualizarPrevisualizaciones();
+            }
+        }
+    }
+
+    // Actualizar previsualizaciones de precios
+    function actualizarPrevisualizaciones() {
+        const precioMensualInput = document.querySelector('input[name="precio_mensual"]');
+        if (precioMensualInput) {
+            const valor = parseInt(precioMensualInput.value.replace(/[^0-9]/g, '')) || 0;
+            document.getElementById('previewMensual').textContent = '$' + valor.toLocaleString('es-AR');
+            document.getElementById('previewClase').textContent = '$' + Math.round(valor * 0.1).toLocaleString('es-AR');
+            document.getElementById('previewSemanal').textContent = '$' + Math.round(valor / 4).toLocaleString('es-AR');
+        }
+    }
+
+    // Contador de caracteres para descripción
+    document.addEventListener('DOMContentLoaded', function() {
+        const descTextarea = document.querySelector('textarea[name="descripcion"]');
+        const contador = document.getElementById('contadorDesc');
+        
+        if (descTextarea && contador) {
+            descTextarea.addEventListener('input', function() {
+                const length = this.value.length;
+                contador.textContent = `${length}/250 caracteres`;
+                contador.className = length > 250 ? 'text-danger' : 'text-muted';
+            });
+            
+            // Inicializar
+            contador.textContent = `${descTextarea.value.length}/250 caracteres`;
+        }
+        
+        actualizarPrevisualizaciones();
+    });
+
+    // Búsqueda de disciplinas
+    function buscarDisciplinas() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#disciplinasTable tbody tr');
+        
+        rows.forEach(row => {
+            const nombre = row.cells[1].textContent.toLowerCase();
+            const descripcion = row.cells[1].querySelector('small').textContent.toLowerCase();
+            
+            if (nombre.includes(searchTerm) || descripcion.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Filtrar disciplinas activas/inactivas
+    function filtrarActivas() {
+        const mostrarInactivas = document.getElementById('mostrarInactivas').checked;
+        const rows = document.querySelectorAll('#disciplinasTable tbody tr');
+        
+        rows.forEach(row => {
+            const esActiva = row.getAttribute('data-activa') === 'true';
+            
+            if (!mostrarInactivas && !esActiva) {
+                row.style.display = 'none';
+            } else {
+                row.style.display = '';
+            }
+        });
+    }
+
+    // Ordenar tabla
+    function ordenarPor(criterio) {
+        const table = document.getElementById('disciplinasTable');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        rows.sort((a, b) => {
+            let valorA, valorB;
+            
+            switch(criterio) {
+                case 'nombre':
+                    valorA = a.cells[1].querySelector('strong').textContent;
+                    valorB = b.cells[1].querySelector('strong').textContent;
+                    return valorA.localeCompare(valorB);
+                    
+                case 'precio':
+                    valorA = parseFloat(a.cells[2].querySelector('strong').textContent.replace('$', '').replace(/\./g, '').replace(',', '.'));
+                    valorB = parseFloat(b.cells[2].querySelector('strong').textContent.replace('$', '').replace(/\./g, '').replace(',', '.'));
+                    return valorA - valorB;
+                    
+                case 'inscripciones':
+                    valorA = parseInt(a.cells[4].querySelector('.badge').textContent);
+                    valorB = parseInt(b.cells[4].querySelector('.badge').textContent);
+                    return valorB - valorA;
+                    
+                case 'ingresos':
+                    valorA = parseFloat(a.cells[5].querySelector('strong').textContent.replace('$', '').replace(/\./g, '').replace(',', '.'));
+                    valorB = parseFloat(b.cells[5].querySelector('strong').textContent.replace('$', '').replace(/\./g, '').replace(',', '.'));
+                    return valorB - valorA;
+                    
+                default:
+                    return 0;
+            }
+        });
+        
+        // Reordenar filas
+        rows.forEach(row => tbody.appendChild(row));
+    }
+
+    // Seleccionar/deseleccionar todos
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.disciplina-checkbox');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAll.checked;
+            actualizarSeleccion(checkbox);
+        });
+        
+        actualizarAccionesEnLote();
+    }
+
+    // Actualizar selección individual
+    function actualizarSeleccion(checkbox) {
+        const disciplinaId = checkbox.value;
+        
+        if (checkbox.checked) {
+            disciplinasSeleccionadas.add(disciplinaId);
+        } else {
+            disciplinasSeleccionadas.delete(disciplinaId);
+            document.getElementById('selectAll').checked = false;
+        }
+        
+        actualizarAccionesEnLote();
+    }
+
+    // Actualizar barra de acciones en lote
+    function actualizarAccionesEnLote() {
+        const contador = document.getElementById('seleccionadosCount');
+        const accionesLote = document.getElementById('accionesLote');
+        
+        contador.textContent = disciplinasSeleccionadas.size;
+        
+        if (disciplinasSeleccionadas.size > 0) {
+            accionesLote.style.display = 'block';
+        } else {
+            accionesLote.style.display = 'none';
+        }
+    }
+
+    // Activar/desactivar disciplinas individualmente
+    function activarDisciplina(id) {
+        if (confirm('¿Activar esta disciplina?')) {
+            // Aquí iría la llamada AJAX al servidor
+            fetch(`/api/disciplinas/${id}/activar/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    }
+
+    function desactivarDisciplina(id) {
+        if (confirm('¿Desactivar esta disciplina? Los alumnos no podrán inscribirse.')) {
+            // Aquí iría la llamada AJAX al servidor
+            fetch(`/api/disciplinas/${id}/desactivar/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    }
+
+    // Activar/desactivar en lote
+    function activarSeleccionadas() {
+        if (disciplinasSeleccionadas.size === 0) return;
+        
+        if (confirm(`¿Activar ${disciplinasSeleccionadas.size} disciplinas seleccionadas?`)) {
+            // Enviar petición AJAX
+            fetch('/api/disciplinas/activar-lote/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: Array.from(disciplinasSeleccionadas) })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    }
+
+    function desactivarSeleccionadas() {
+        if (disciplinasSeleccionadas.size === 0) return;
+        
+        if (confirm(`¿Desactivar ${disciplinasSeleccionadas.size} disciplinas seleccionadas?`)) {
+            // Enviar petición AJAX
+            fetch('/api/disciplinas/desactivar-lote/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: Array.from(disciplinasSeleccionadas) })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    }
+
+    // Abrir modal para cambio de precio en lote
+    function aplicarCambioPrecio() {
+        if (disciplinasSeleccionadas.size === 0) return;
+        
+        const modal = new bootstrap.Modal(document.getElementById('cambioPrecioModal'));
+        document.getElementById('disciplinasSeleccionadasCount').textContent = disciplinasSeleccionadas.size;
+        modal.show();
+    }
+
+    // Confirmar cambio de precio en lote
+    function confirmarCambioPrecio() {
+        const nuevoPrecioMensual = document.getElementById('nuevoPrecioMensual').value;
+        const nuevoPrecioClase = document.getElementById('nuevoPrecioClase').value;
+        
+        if (!nuevoPrecioMensual || nuevoPrecioMensual === '$0') {
+            alert('Por favor ingresa un precio mensual válido');
+            return;
+        }
+        
+        if (confirm(`¿Cambiar precio de ${disciplinasSeleccionadas.size} disciplinas?`)) {
+            fetch('/api/disciplinas/cambiar-precio-lote/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ids: Array.from(disciplinasSeleccionadas),
+                    precio_mensual: nuevoPrecioMensual.replace('$', '').replace(/\./g, ''),
+                    precio_clase_suelta: nuevoPrecioClase.replace('$', '').replace(/\./g, '')
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    }
+
+    // Copiar precio al portapapeles
+    function copiarPrecio(precio) {
+        navigator.clipboard.writeText(precio).then(() => {
+            // Mostrar notificación temporal
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success position-fixed top-0 end-0 m-3';
+            alertDiv.style.zIndex = '1050';
+            alertDiv.innerHTML = `<i class="fas fa-check me-2"></i>Precio copiado: $${precio}`;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => alertDiv.remove(), 2000);
+        });
+    }
+
+    // Generar código QR (placeholder)
+    function generarCodigoQR(disciplinaId) {
+        // Esta función se implementaría con una librería QR
+        alert('Función para generar QR de disciplina ' + disciplinaId);
+    }
+
+    // Exportar datos
+    function exportarDisciplinas() {
+        // Aquí iría la lógica para exportar a Excel o PDF
+        const datos = [];
+        document.querySelectorAll('#disciplinasTable tbody tr').forEach(row => {
+            const nombre = row.cells[1].querySelector('strong').textContent;
+            const precio = row.cells[2].querySelector('strong').textContent;
+            const inscripciones = row.cells[4].querySelector('.badge').textContent;
+            const ingresos = row.cells[5].querySelector('strong').textContent;
+            
+            datos.push({ nombre, precio, inscripciones, ingresos });
+        });
+        
+        // Simular descarga
+        const contenido = 'Datos de Disciplinas\n\n' + 
+                         datos.map(d => `${d.nombre}: ${d.precio} - ${d.inscripciones} inscripciones - ${d.ingresos} ingresos`).join('\n');
+        
+        const blob = new Blob([contenido], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'disciplinas.txt';
+        a.click();
+    }
+
+    // Validar formulario de creación
+    document.getElementById('formCrearDisciplina').addEventListener('submit', function(e) {
+        const precioMensual = this.querySelector('input[name="precio_mensual"]').value;
+        const nombre = this.querySelector('select[name="nombre"]').value;
+        
+        if (!nombre) {
+            e.preventDefault();
+            alert('Por favor selecciona un nombre para la disciplina');
+            return;
+        }
+        
+        if (!precioMensual || precioMensual === '$0') {
+            e.preventDefault();
+            alert('Por favor ingresa un precio mensual válido');
+            return;
+        }
+        
+        // Formatear precio antes de enviar
+        this.querySelector('input[name="precio_mensual"]').value = precioMensual.replace('$', '').replace(/\./g, '');
+        this.querySelector('input[name="precio_clase_suelta"]').value = 
+            this.querySelector('input[name="precio_clase_suelta"]').value.replace('$', '').replace(/\./g, '');
+    });
+
+    // Búsqueda en tiempo real
+    document.getElementById('searchInput').addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') {
+            buscarDisciplinas();
+        }
+    });
+
+    // Inicializar checkboxes
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.disciplina-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                actualizarSeleccion(this);
+            });
+        });
+    });
+</script>
+{% endblock %}

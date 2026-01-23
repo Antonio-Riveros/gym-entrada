@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-plus"></i> Registro Rápido de Alumno
+                    </h5>
+                    <small class="text-light">Crea un nuevo alumno e inscríbelo en una disciplina/combo en un solo paso</small>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="registroRapidoForm">
+                        {% csrf_token %}
+                        
+                        <!-- Mensajes de error/success -->
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        <!-- Datos personales -->
+                        <h6 class="border-bottom pb-2">Datos Personales</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="nombre">Nombre *</label>
+                                    <input type="text" class="form-control" id="nombre" name="nombre" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="apellido">Apellido *</label>
+                                    <input type="text" class="form-control" id="apellido" name="apellido" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="telefono">Teléfono *</label>
+                                    <input type="text" class="form-control" id="telefono" name="telefono" required>
+                                    <small class="form-text text-muted">Formato: 341-1234567</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="email">Email (opcional)</label>
+                                    <input type="email" class="form-control" id="email" name="email">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="fecha_nacimiento">Fecha de Nacimiento (opcional)</label>
+                                    <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="rfid">Código RFID (opcional)</label>
+                                    <input type="text" class="form-control" id="rfid" name="rfid" placeholder="Ej: 123456789">
+                                    <small class="form-text text-muted">Para acceso automático al gimnasio</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Disciplina y combo -->
+                        <h6 class="border-bottom pb-2 mt-4">Inscripción</h6>
+                        <div class="form-group">
+                            <label for="disciplina">Disciplina o Combo *</label>
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <select name="disciplina" id="disciplina" class="form-control" required>
+                                        <option value="">Selecciona disciplina/combo</option>
+                                        <!-- Disciplinas individuales -->
+                                        <optgroup label="Disciplinas Individuales">
+                                            {% for disciplina in disciplinas %}
+                                                <option value="disciplina-{{ disciplina.id }}" data-precio="{{ disciplina.precio_mensual }}">
+                                                    {{ disciplina.get_nombre_display }} - ${{ disciplina.precio_mensual }}/mes
+                                                </option>
+                                            {% endfor %}
+                                        </optgroup>
+                                        <!-- Combos -->
+                                        <optgroup label="Combos Promocionales">
+                                            {% for combo in combos %}
+                                                <option value="combo-{{ combo.id }}" data-precio="{{ combo.precio_combo }}">
+                                                    {{ combo.nombre }} - ${{ combo.precio_combo }}/mes
+                                                    (Ahorra {{ combo.calcular_descuento_porcentaje|floatformat:1 }}%)
+                                                </option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">$</span>
+                                        </div>
+                                        <input type="text" class="form-control" id="precioSeleccionado" value="0" readonly>
+                                    </div>
+                                    <small class="text-muted">Precio mensual</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Pago -->
+                        <h6 class="border-bottom pb-2 mt-4">Pago</h6>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="registrar_pago" name="registrar_pago" checked>
+                            <label class="form-check-label" for="registrar_pago">
+                                <i class="fas fa-cash-register text-success"></i> Registrar pago ahora ($<span id="montoPago">0</span>)
+                            </label>
+                            <small class="form-text text-muted">Se registrará el pago del primer mes como pagado</small>
+                        </div>
+                        
+                        <div class="form-group" id="metodoPagoContainer">
+                            <label for="metodo_pago">Método de pago</label>
+                            <select name="metodo_pago" id="metodo_pago" class="form-control">
+                                <option value="EFECTIVO">Efectivo</option>
+                                <option value="TRANSFERENCIA">Transferencia</option>
+                                <option value="TARJETA">Tarjeta</option>
+                                <option value="MERCADO_PAGO">Mercado Pago</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Botones -->
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-success btn-lg btn-block">
+                                <i class="fas fa-save"></i> Crear Alumno e Inscribir
+                            </button>
+                            <a href="{% url 'inscripcion_rapida' %}" class="btn btn-outline-secondary btn-block mt-2">
+                                <i class="fas fa-arrow-left"></i> Volver a inscripción rápida
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascript %}
+<script>
+$(document).ready(function() {
+    // Actualizar precio cuando selecciona disciplina/combo
+    $('#disciplina').change(function() {
+        var selectedOption = $(this).find(':selected');
+        var precio = selectedOption.data('precio') || 0;
+        $('#precioSeleccionado').val(precio);
+        $('#montoPago').text(precio);
+    });
+    
+    // Mostrar/ocultar método de pago
+    $('#registrar_pago').change(function() {
+        $('#metodoPagoContainer').toggle(this.checked);
+    });
+    
+    // Autoformato para teléfono
+    $('#telefono').on('input', function() {
+        var value = $(this).val().replace(/\D/g, '');
+        if (value.length > 2) {
+            value = value.substring(0, 2) + '-' + value.substring(2);
+        }
+        if (value.length > 6) {
+            value = value.substring(0, 7) + '-' + value.substring(7, 11);
+        }
+        $(this).val(value);
+    });
+    
+    // Disparar el cambio al cargar para mostrar el precio inicial
+    $('#disciplina').trigger('change');
+});
+</script>
+{% endblock %}

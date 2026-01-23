@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{{ form_title }} - Sistema Gimnasio MMA{% endblock %}
+
+{% block page_title %}{{ form_title }}{% endblock %}
+{% block page_subtitle %}Crea o modifica un combo de disciplinas con descuento{% endblock %}
+
+{% block header_buttons %}
+<a href="{% url 'combo_list' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Volver a Combos
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <form method="post" id="comboForm">
+                {% csrf_token %}
+                
+                <div class="card-header">
+                    <h5 class="mb-0">Información del Combo</h5>
+                </div>
+                
+                <div class="card-body">
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger alert-custom">
+                        {% for error in form.non_field_errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Nombre y Descripción -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.nombre.label }} *</label>
+                            {{ form.nombre|add_class:"form-control form-control-custom"|attr:"placeholder:Ej: Combo MMA + Boxeo" }}
+                            {% if form.nombre.errors %}
+                            <div class="text-danger small mt-1">{{ form.nombre.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.activo.label }}</label>
+                            <div class="form-check form-switch mt-2">
+                                {{ form.activo|add_class:"form-check-input"|attr:"role:switch" }}
+                                <label class="form-check-label" for="{{ form.activo.id_for_label }}">
+                                    Combo activo y disponible
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <label class="form-label">{{ form.descripcion.label }}</label>
+                            {{ form.descripcion|add_class:"form-control form-control-custom"|attr:"rows:3"|attr:"placeholder:Descripción del combo, beneficios, etc." }}
+                        </div>
+                    </div>
+                    
+                    <!-- Disciplinas -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <label class="form-label">{{ form.disciplinas.label }} *</label>
+                            <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                <div class="row">
+                                    {% for disciplina in disciplinas %}
+                                    <div class="col-md-4 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" 
+                                                   type="checkbox" 
+                                                   name="disciplinas" 
+                                                   value="{{ disciplina.id }}"
+                                                   id="disciplina_{{ disciplina.id }}"
+                                                   {% if disciplina.id in form.instance.disciplinas.values_list|slice:"1" %}checked{% endif %}
+                                                   onchange="calcularPrecio()">
+                                            <label class="form-check-label" for="disciplina_{{ disciplina.id }}">
+                                                {{ disciplina.get_nombre_display }}
+                                                <small class="text-muted d-block">${{ disciplina.precio_mensual }}</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="col-12 text-center">
+                                        <p class="text-muted">No hay disciplinas disponibles</p>
+                                        <a href="{% url 'admin:disciplinas_disciplina_add' %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-plus me-1"></i>Crear Disciplina
+                                        </a>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% if form.disciplinas.errors %}
+                            <div class="text-danger small mt-1">{{ form.disciplinas.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Precios -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3">
+                                <h6 class="mb-3">Precio Normal</h6>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>Total disciplinas seleccionadas:</span>
+                                    <strong id="totalDisciplinas">0</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Precio total normal:</span>
+                                    <strong class="text-muted" id="precioNormal">$0</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3">
+                                <h6 class="mb-3">Precio del Combo</h6>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">$</span>
+                                    {{ form.precio_combo|add_class:"form-control form-control-custom text-end"|attr:"id:precioCombo"|attr:"oninput:calcularDescuento()" }}
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Descuento aplicado:</span>
+                                    <strong class="text-success" id="descuentoPorcentaje">0%</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Ahorro total:</span>
+                                    <strong class="text-success" id="ahorroTotal">$0</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sugerencias -->
+                    <div class="alert alert-info alert-custom">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-lightbulb me-3"></i>
+                            <div>
+                                <small>
+                                    <strong>Sugerencias de precios:</strong><br>
+                                    • 2 disciplinas: 15-20% de descuento<br>
+                                    • 3 disciplinas: 25-30% de descuento<br>
+                                    • 4+ disciplinas: 30-40% de descuento
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between">
+                        {% if form.instance.id %}
+                        <a href="{% url 'combo_detail' form.instance.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        {% else %}
+                        <a href="{% url 'combo_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        {% endif %}
+                        
+                        <div class="d-flex gap-2">
+                            {% if form.instance.id %}
+                            <button type="button" class="btn btn-danger"
+                                    onclick="if(confirm('¿Eliminar este combo?')) { 
+                                        window.location.href='{% url 'admin:disciplinas_combo_delete' form.instance.id %}'; 
+                                    }">
+                                <i class="fas fa-trash me-2"></i>Eliminar
+                            </button>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary-custom">
+                                <i class="fas fa-save me-2"></i>{{ form.instance.id|yesno:'Actualizar,Guardar' }} Combo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Calcular precios en tiempo real
+    function calcularPrecio() {
+        const checkboxes = document.querySelectorAll('input[name="disciplinas"]:checked');
+        const totalDisciplinas = checkboxes.length;
+        let precioTotal = 0;
+        
+        // Obtener precios de las disciplinas seleccionadas
+        checkboxes.forEach(checkbox => {
+            const label = document.querySelector(`label[for="${checkbox.id}"]`);
+            const precioText = label.querySelector('.text-muted').textContent;
+            const precio = parseFloat(precioText.replace('$', '').replace(',', ''));
+            precioTotal += precio;
+        });
+        
+        // Actualizar UI
+        document.getElementById('totalDisciplinas').textContent = totalDisciplinas;
+        document.getElementById('precioNormal').textContent = '$' + precioTotal.toLocaleString('es-AR');
+        
+        // Calcular precio sugerido para el combo
+        let precioSugerido = precioTotal;
+        if (totalDisciplinas === 2) {
+            precioSugerido = precioTotal * 0.85; // 15% descuento
+        } else if (totalDisciplinas === 3) {
+            precioSugerido = precioTotal * 0.75; // 25% descuento
+        } else if (totalDisciplinas >= 4) {
+            precioSugerido = precioTotal * 0.70; // 30% descuento
+        }
+        
+        // Actualizar campo de precio del combo
+        const precioComboInput = document.getElementById('precioCombo');
+        if (!precioComboInput.value || precioComboInput.value === '0') {
+            precioComboInput.value = '$' + Math.round(precioSugerido).toLocaleString('es-AR');
+        }
+        
+        // Calcular descuento
+        calcularDescuento();
+    }
+    
+    // Calcular descuento basado en el precio del combo
+    function calcularDescuento() {
+        const precioNormalText = document.getElementById('precioNormal').textContent;
+        const precioNormal = parseFloat(precioNormalText.replace('$', '').replace(/\./g, '').replace(',', '.'));
+        
+        const precioComboInput = document.getElementById('precioCombo');
+        let precioCombo = parseFloat(precioComboInput.value.replace('$', '').replace(/\./g, '').replace(',', '.'));
+        
+        if (isNaN(precioCombo)) {
+            precioCombo = 0;
+        }
+        
+        if (precioNormal > 0 && precioCombo > 0) {
+            const descuento = ((precioNormal - precioCombo) / precioNormal * 100);
+            const ahorro = precioNormal - precioCombo;
+            
+            document.getElementById('descuentoPorcentaje').textContent = 
+                descuento.toFixed(1) + '%';
+            document.getElementById('ahorroTotal').textContent = 
+                '$' + ahorro.toLocaleString('es-AR', {minimumFractionDigits: 2});
+            
+            // Color según el descuento
+            const descuentoElement = document.getElementById('descuentoPorcentaje');
+            if (descuento >= 30) {
+                descuentoElement.className = 'text-success';
+            } else if (descuento >= 15) {
+                descuentoElement.className = 'text-primary';
+            } else {
+                descuentoElement.className = 'text-warning';
+            }
+        } else {
+            document.getElementById('descuentoPorcentaje').textContent = '0%';
+            document.getElementById('ahorroTotal').textContent = '$0';
+        }
+    }
+    
+    // Formatear precio mientras se escribe
+    document.getElementById('precioCombo').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/[^0-9]/g, '');
+        if (value) {
+            value = parseInt(value, 10);
+            e.target.value = '$' + value.toLocaleString('es-AR');
+        }
+    });
+    
+    // Calcular al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        calcularPrecio();
+    });
+    
+    // Validar formulario
+    document.getElementById('comboForm').addEventListener('submit', function(e) {
+        const checkboxes = document.querySelectorAll('input[name="disciplinas"]:checked');
+        const precioCombo = document.getElementById('precioCombo').value;
+        
+        if (checkboxes.length === 0) {
+            e.preventDefault();
+            alert('Por favor, selecciona al menos una disciplina para el combo.');
+            return;
+        }
+        
+        if (!precioCombo || parseFloat(precioCombo.replace('$', '').replace(/\./g, '').replace(',', '.')) <= 0) {
+            e.preventDefault();
+            alert('Por favor, ingresa un precio válido para el combo.');
+            return;
+        }
+    });
+</script>
+{% endblock %}

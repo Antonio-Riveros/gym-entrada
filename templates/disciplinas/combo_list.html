@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block title %}Combos y Promociones - Sistema Gimnasio MMA{% endblock %}
+
+{% block page_title %}Combos y Promociones{% endblock %}
+{% block page_subtitle %}Paquetes de disciplinas con descuentos especiales{% endblock %}
+
+{% block header_buttons %}
+<a href="{% url 'combo_create' %}" class="btn btn-success-custom me-2">
+    <i class="fas fa-plus-circle me-2"></i>Nuevo Combo
+</a>
+<a href="{% url 'precios_rapidos' %}" class="btn btn-primary-custom">
+    <i class="fas fa-tags me-2"></i>Gestión de Precios
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Estadísticas -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Combos Activos</div>
+                    <div class="stat-value text-success">{{ combos_activos }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Total Combos</div>
+                    <div class="stat-value text-primary">{{ total_combos }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Alumnos con Combos</div>
+                    <div class="stat-value text-info">{{ alumnos_con_combos }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Ahorro Promedio</div>
+                    <div class="stat-value text-warning">20%</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lista de Combos -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Todos los Combos</h5>
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control form-control-custom" 
+                               placeholder="Buscar combos..." id="searchInput">
+                        <button class="btn btn-outline-secondary" type="button">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                {% if combos %}
+                <div class="table-responsive">
+                    <table class="table table-custom mb-0" id="combosTable">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Disciplinas</th>
+                                <th>Precio Normal</th>
+                                <th>Precio Combo</th>
+                                <th>Descuento</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for combo in combos %}
+                            <tr>
+                                <td>
+                                    <strong>{{ combo.nombre }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ combo.descripcion|truncatechars:80 }}</small>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        {% for disciplina in combo.disciplinas.all %}
+                                        <span class="badge bg-info">{{ disciplina.get_nombre_display }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="text-decoration-line-through text-muted">
+                                        ${{ combo.calcular_precio_normal|floatformat:2 }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong class="text-success">${{ combo.precio_combo }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">
+                                        {{ combo.calcular_descuento_porcentaje|floatformat:1 }}%
+                                    </span>
+                                    <br>
+                                    <small class="text-muted">
+                                        Ahorro: ${{ combo.calcular_precio_normal|floatformat:2|add:"-"|add:combo.precio_combo|floatformat:2 }}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if combo.activo %}
+                                    <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'combo_detail' combo.id %}" 
+                                           class="btn btn-sm btn-outline-primary" title="Ver detalles">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'combo_update' combo.id %}" 
+                                           class="btn btn-sm btn-outline-secondary" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-info"
+                                                onclick="copyComboLink({{ combo.id }})"
+                                                title="Copiar enlace">
+                                            <i class="fas fa-link"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-layer-group fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No hay combos registrados</h5>
+                    <p class="text-muted mb-4">Crea tu primer combo para ofrecer promociones a tus alumnos.</p>
+                    <a href="{% url 'combo_create' %}" class="btn btn-success-custom">
+                        <i class="fas fa-plus-circle me-2"></i>Crear Primer Combo
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Beneficios de los Combos -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">¿Por qué ofrecer combos?</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center p-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                                 style="width: 60px; height: 60px;">
+                                <i class="fas fa-chart-line fa-xl text-primary"></i>
+                            </div>
+                            <h6>Mayores Ingresos</h6>
+                            <p class="small text-muted mb-0">Los alumnos tienden a gastar más cuando ven un buen descuento.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3">
+                            <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                                 style="width: 60px; height: 60px;">
+                                <i class="fas fa-user-friends fa-xl text-success"></i>
+                            </div>
+                            <h6>Fidelización</h6>
+                            <p class="small text-muted mb-0">Los alumnos que compran combos tienden a ser más fieles.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3">
+                            <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                                 style="width: 60px; height: 60px;">
+                                <i class="fas fa-bolt fa-xl text-warning"></i>
+                            </div>
+                            <h6>Rotación Inteligente</h6>
+                            <p class="small text-muted mb-0">Permite equilibrar la carga en diferentes disciplinas.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Búsqueda en tiempo real
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        var input = this.value.toLowerCase();
+        var rows = document.querySelectorAll('#combosTable tbody tr');
+        
+        rows.forEach(function(row) {
+            var text = row.textContent.toLowerCase();
+            row.style.display = text.includes(input) ? '' : 'none';
+        });
+    });
+    
+    // Copiar enlace del combo
+    function copyComboLink(comboId) {
+        var url = window.location.origin + '/disciplinas/combos/' + comboId + '/';
+        navigator.clipboard.writeText(url).then(function() {
+            alert('Enlace copiado al portapapeles: ' + url);
+        });
+    }
+    
+    // Ordenar por descuento
+    function sortByDiscount() {
+        var table = document.getElementById('combosTable');
+        var rows = Array.from(table.querySelectorAll('tbody tr'));
+        
+        rows.sort(function(a, b) {
+            var discountA = parseFloat(a.cells[4].querySelector('.badge').textContent);
+            var discountB = parseFloat(b.cells[4].querySelector('.badge').textContent);
+            return discountB - discountA;
+        });
+        
+        rows.forEach(function(row) {
+            table.querySelector('tbody').appendChild(row);
+        });
+    }
+</script>
+{% endblock %}

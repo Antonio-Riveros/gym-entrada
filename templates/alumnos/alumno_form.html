@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{{ form_title }} - Sistema Gimnasio MMA{% endblock %}
+
+{% block page_title %}{{ form_title }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'alumno_list' %}">Alumnos</a></li>
+<li class="breadcrumb-item active">{{ form_title }}</li>
+{% endblock %}
+
+{% block header_buttons %}
+<a href="{% url 'alumno_list' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Información del Alumno</h5>
+            </div>
+            <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                {% csrf_token %}
+                
+                <div class="card-body">
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger alert-custom">
+                        {% for error in form.non_field_errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <!-- Foto del Alumno -->
+                        <div class="col-md-3 text-center mb-4">
+                            <div class="mb-3">
+                                {% if form.instance.foto %}
+                                <img src="{{ form.instance.foto.url }}" alt="Foto del alumno" 
+                                     class="img-fluid rounded-circle border" style="max-width: 150px;">
+                                {% else %}
+                                <div class="border rounded-circle d-flex align-items-center justify-content-center mx-auto" 
+                                     style="width: 150px; height: 150px; background-color: #f8f9fa;">
+                                    <i class="fas fa-user fa-4x text-secondary"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="form-group">
+                                {{ form.foto.label_tag }}
+                                {{ form.foto|add_class:"form-control form-control-custom mt-2" }}
+                                {% if form.foto.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.foto.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Información Personal -->
+                        <div class="col-md-9">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ form.nombre.label }} *</label>
+                                    {{ form.nombre|add_class:"form-control form-control-custom"|attr:"placeholder:Ej: Juan" }}
+                                    {% if form.nombre.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.nombre.errors }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ form.apellido.label }} *</label>
+                                    {{ form.apellido|add_class:"form-control form-control-custom"|attr:"placeholder:Ej: Pérez" }}
+                                    {% if form.apellido.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.apellido.errors }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ form.telefono.label }} *</label>
+                                    {{ form.telefono|add_class:"form-control form-control-custom"|attr:"placeholder:Ej: 341-1234567" }}
+                                    {% if form.telefono.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.telefono.errors }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ form.email.label }}</label>
+                                    {{ form.email|add_class:"form-control form-control-custom"|attr:"placeholder:Ej: juan@email.com"|attr:"type:email" }}
+                                    {% if form.email.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.email.errors }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ form.fecha_nacimiento.label }} *</label>
+                                    {{ form.fecha_nacimiento|add_class:"form-control form-control-custom"|attr:"type:date" }}
+                                    {% if form.fecha_nacimiento.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.fecha_nacimiento.errors }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ form.rfid.label }}</label>
+                                    {{ form.rfid|add_class:"form-control form-control-custom"|attr:"placeholder:Código RFID" }}
+                                    {% if form.rfid.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.rfid.errors }}
+                                    </div>
+                                    {% endif %}
+                                    <small class="text-muted">Dejar vacío si no se dispone de tarjeta RFID</small>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ form.activo.label }}</label>
+                                    <div class="form-check form-switch">
+                                        {{ form.activo|add_class:"form-check-input"|attr:"role:switch" }}
+                                        <label class="form-check-label" for="{{ form.activo.id_for_label }}">
+                                            {% if form.instance.activo %}Alumno activo{% else %}Alumno inactivo{% endif %}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Información Adicional -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="border-bottom pb-2 mb-3">Información Adicional</h6>
+                            <div class="alert alert-info alert-custom">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-info-circle me-3 fa-lg"></i>
+                                    <div>
+                                        <small>
+                                            Los campos marcados con * son obligatorios.<br>
+                                            El sistema asignará automáticamente la fecha de inscripción.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </button>
+                        <div class="d-flex gap-2">
+                            {% if form.instance.id %}
+                            <a href="{% url 'admin:alumnos_alumno_delete' form.instance.id %}" 
+                               class="btn btn-custom-danger"
+                               onclick="return confirm('¿Está seguro que desea eliminar este alumno? Esta acción no se puede deshacer.')">
+                                <i class="fas fa-trash me-2"></i>Eliminar
+                            </a>
+                            {% endif %}
+                            <button type="submit" class="btn btn-custom-primary">
+                                <i class="fas fa-save me-2"></i>Guardar Alumno
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Quick Help -->
+        {% if not form.instance.id %}
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">¿Qué sucede después de guardar?</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <span class="badge bg-primary rounded-circle p-2">1</span>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Inscripción a Disciplinas</h6>
+                                <p class="small text-muted mb-0">Podrás inscribir al alumno en las disciplinas que desee.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <span class="badge bg-primary rounded-circle p-2">2</span>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Registrar Primer Pago</h6>
+                                <p class="small text-muted mb-0">Podrás registrar el pago de la matrícula o primera cuota.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <span class="badge bg-primary rounded-circle p-2">3</span>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Tarjeta RFID (Opcional)</h6>
+                                <p class="small text-muted mb-0">Podrás asignar una tarjeta para el control de acceso.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Form validation
+    (function() {
+        'use strict';
+        window.addEventListener('load', function() {
+            var forms = document.getElementsByClassName('needs-validation');
+            var validation = Array.prototype.filter.call(forms, function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+    
+    // Preview image before upload
+    document.getElementById('{{ form.foto.id_for_label }}').addEventListener('change', function(e) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var imgPreview = document.querySelector('.rounded-circle.border img');
+            if (!imgPreview) {
+                var placeholder = document.querySelector('.rounded-circle.border');
+                if (placeholder) {
+                    placeholder.innerHTML = '<img src="' + e.target.result + '" class="img-fluid rounded-circle" style="max-width: 150px;">';
+                }
+            } else {
+                imgPreview.src = e.target.result;
+            }
+        }
+        reader.readAsDataURL(this.files[0]);
+    });
+</script>
+{% endblock %}

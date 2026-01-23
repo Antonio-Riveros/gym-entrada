@@ -1,0 +1,463 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inscripción Rápida - Sistema Gimnasio MMA{% endblock %}
+
+{% block page_title %}Inscripción Rápida{% endblock %}
+{% block page_subtitle %}Inscribe alumnos en disciplinas en pocos pasos{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Formulario de Inscripción</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="inscripcionForm">
+                    {% csrf_token %}
+                    
+                    <!-- Selección de alumno -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Alumno *</label>
+                            <select name="alumno" id="alumnoSelect" class="form-control form-control-custom" required>
+                                <option value="">Selecciona un alumno...</option>
+                                {% for alumno in alumnos %}
+                                <option value="{{ alumno.id }}" 
+                                        data-telefono="{{ alumno.telefono }}"
+                                        data-email="{{ alumno.email|default:'Sin email' }}">
+                                    {{ alumno.apellido }}, {{ alumno.nombre }} - Tel: {{ alumno.telefono }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="mt-2" id="infoAlumno" style="display: none;">
+                                <small class="text-muted">
+                                    Teléfono: <span id="alumnoTelefono"></span><br>
+                                    Email: <span id="alumnoEmail"></span>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between align-items-end h-100">
+                                <div>
+                                    <a href="{% url 'registro_rapido_completo' %}" class="btn btn-success-custom">
+                                        <i class="fas fa-user-plus me-2"></i>Nuevo Alumno
+                                    </a>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-outline-primary" onclick="buscarHorariosDisciplina()">
+                                        <i class="fas fa-search me-2"></i>Ver Horarios
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Selección de disciplina -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Disciplina *</label>
+                            <select name="disciplina" id="disciplinaSelect" class="form-control form-control-custom" required>
+                                <option value="">Selecciona una disciplina...</option>
+                                {% for disciplina in disciplinas %}
+                                <option value="{{ disciplina.id }}" 
+                                        data-precio="{{ disciplina.precio_mensual }}">
+                                    {{ disciplina.get_nombre_display }} - ${{ disciplina.precio_mensual }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Precio Mensual</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" id="precioDisciplina" class="form-control form-control-custom text-end" readonly value="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Horarios disponibles -->
+                    <div class="row mb-4" id="horariosContainer" style="display: none;">
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold">Horarios Disponibles</label>
+                            <div class="alert alert-info alert-custom mb-3">
+                                <small>
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Los horarios con <span class="badge bg-danger">CONFLICTO</span> se superponen con otros horarios del alumno
+                                </small>
+                            </div>
+                            
+                            <div id="horariosList" class="row">
+                                <!-- Los horarios se cargarán aquí -->
+                            </div>
+                            
+                            <div class="form-check mt-3">
+                                <input type="checkbox" class="form-check-input" id="sinHorario" name="sin_horario" checked>
+                                <label class="form-check-label" for="sinHorario">
+                                    Inscribir sin horario específico (el alumno podrá elegir después)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Información adicional -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="border rounded p-3">
+                                <h6 class="border-bottom pb-2 mb-3">Información de la Disciplina</h6>
+                                <div id="disciplinaInfo">
+                                    <p class="text-muted mb-0">Selecciona una disciplina para ver su información</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Opciones de pago -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="registrarPago" name="registrar_pago">
+                                <label class="form-check-label fw-bold" for="registrarPago">
+                                    Registrar pago ahora ($<span id="montoPago">0</span>)
+                                </label>
+                                <small class="text-muted d-block">
+                                    Se registrará el primer pago mensual como pagado. Si no se marca, el alumno tendrá deuda.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Observaciones -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold">Observaciones (opcional)</label>
+                            <textarea name="observacion" class="form-control form-control-custom" rows="3" 
+                                      placeholder="Notas adicionales sobre la inscripción..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'alumno_list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-primary-custom">
+                                    <i class="fas fa-check me-2"></i>Confirmar Inscripción
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Variables globales
+    let horarioSeleccionado = null;
+    
+    // Mostrar información del alumno seleccionado
+    document.getElementById('alumnoSelect').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const infoDiv = document.getElementById('infoAlumno');
+        
+        if (this.value) {
+            document.getElementById('alumnoTelefono').textContent = selectedOption.dataset.telefono;
+            document.getElementById('alumnoEmail').textContent = selectedOption.dataset.email;
+            infoDiv.style.display = 'block';
+            
+            // Si ya hay una disciplina seleccionada, buscar horarios
+            const disciplinaId = document.getElementById('disciplinaSelect').value;
+            if (disciplinaId) {
+                buscarHorariosDisciplina();
+            }
+        } else {
+            infoDiv.style.display = 'none';
+        }
+    });
+    
+    // Mostrar precio de la disciplina
+    document.getElementById('disciplinaSelect').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const precioInput = document.getElementById('precioDisciplina');
+        
+        if (this.value) {
+            const precio = selectedOption.dataset.precio || 0;
+            precioInput.value = Number(precio).toLocaleString('es-AR');
+            document.getElementById('montoPago').textContent = Number(precio).toLocaleString('es-AR');
+            
+            // Buscar información de la disciplina
+            cargarInfoDisciplina(this.value);
+            
+            // Buscar horarios si hay un alumno seleccionado
+            const alumnoId = document.getElementById('alumnoSelect').value;
+            if (alumnoId) {
+                buscarHorariosDisciplina();
+            }
+        } else {
+            precioInput.value = '0';
+            document.getElementById('montoPago').textContent = '0';
+            document.getElementById('disciplinaInfo').innerHTML = 
+                '<p class="text-muted mb-0">Selecciona una disciplina para ver su información</p>';
+        }
+    });
+    
+    // Buscar horarios de la disciplina
+    function buscarHorariosDisciplina() {
+        const disciplinaId = document.getElementById('disciplinaSelect').value;
+        const alumnoId = document.getElementById('alumnoSelect').value;
+        
+        if (!disciplinaId || !alumnoId) {
+            alert('Por favor selecciona un alumno y una disciplina primero');
+            return;
+        }
+        
+        // Mostrar spinner
+        const horariosList = document.getElementById('horariosList');
+        horariosList.innerHTML = `
+            <div class="col-12 text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="text-muted mt-2">Buscando horarios disponibles...</p>
+            </div>
+        `;
+        
+        document.getElementById('horariosContainer').style.display = 'block';
+        
+        // Hacer petición AJAX
+        fetch(`/alumnos/horarios-disciplina/?disciplina_id=${disciplinaId}&alumno_id=${alumnoId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    mostrarHorarios(data.horarios);
+                } else {
+                    mostrarErrorHorarios(data.error || 'Error al cargar los horarios');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarErrorHorarios('Error de conexión');
+            });
+    }
+    
+    // Mostrar horarios en la interfaz
+    function mostrarHorarios(horarios) {
+        const horariosList = document.getElementById('horariosList');
+        
+        if (horarios.length === 0) {
+            horariosList.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Esta disciplina no tiene horarios asignados. 
+                        El alumno podrá asistir a cualquier horario disponible.
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        
+        horarios.forEach(horario => {
+            const disponible = horario.disponible;
+            const lleno = horario.lleno;
+            const conflicto = horario.conflicto;
+            
+            // Determinar clases CSS según estado
+            let cardClass = 'border';
+            let badgeClass = 'bg-secondary';
+            let disabled = false;
+            
+            if (lleno) {
+                cardClass += ' border-danger bg-danger bg-opacity-10';
+                badgeClass = 'bg-danger';
+                disabled = true;
+            } else if (conflicto) {
+                cardClass += ' border-warning bg-warning bg-opacity-10';
+                badgeClass = 'bg-warning';
+                disabled = true;
+            } else if (disponible > 0) {
+                cardClass += ' border-success bg-success bg-opacity-10';
+                badgeClass = 'bg-success';
+            }
+            
+            html += `
+                <div class="col-md-4 mb-3">
+                    <div class="card ${cardClass} horario-card" 
+                         data-horario-id="${horario.id}"
+                         onclick="${!disabled ? `seleccionarHorario(${horario.id})` : ''}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0">${horario.dia}</h6>
+                                <span class="badge ${badgeClass}">
+                                    ${horario.disponible}/${horario.capacidad} cupos
+                                </span>
+                            </div>
+                            
+                            <p class="card-text">
+                                <i class="far fa-clock me-2"></i>
+                                ${horario.hora_inicio} - ${horario.hora_fin}
+                            </p>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    ${horario.inscritos} inscritos
+                                </small>
+                                ${conflicto ? 
+                                    '<span class="badge bg-danger">CONFLICTO</span>' : 
+                                    (lleno ? 
+                                        '<span class="badge bg-danger">LLENO</span>' : 
+                                        '<span class="badge bg-success">DISPONIBLE</span>'
+                                    )
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        horariosList.innerHTML = html;
+    }
+    
+    function mostrarErrorHorarios(mensaje) {
+        const horariosList = document.getElementById('horariosList');
+        horariosList.innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    ${mensaje}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Seleccionar un horario
+    function seleccionarHorario(horarioId) {
+        // Desmarcar todos los horarios
+        document.querySelectorAll('.horario-card').forEach(card => {
+            card.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+            card.classList.add('border');
+        });
+        
+        // Marcar el horario seleccionado
+        const selectedCard = document.querySelector(`[data-horario-id="${horarioId}"]`);
+        if (selectedCard) {
+            selectedCard.classList.remove('border');
+            selectedCard.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
+        }
+        
+        horarioSeleccionado = horarioId;
+        document.getElementById('sinHorario').checked = false;
+        
+        // Crear input oculto con el horario seleccionado
+        let hiddenInput = document.getElementById('horarioHiddenInput');
+        if (!hiddenInput) {
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'horario';
+            hiddenInput.id = 'horarioHiddenInput';
+            document.getElementById('inscripcionForm').appendChild(hiddenInput);
+        }
+        hiddenInput.value = horarioId;
+    }
+    
+    // Manejar checkbox de "sin horario"
+    document.getElementById('sinHorario').addEventListener('change', function() {
+        if (this.checked) {
+            horarioSeleccionado = null;
+            
+            // Eliminar input oculto si existe
+            const hiddenInput = document.getElementById('horarioHiddenInput');
+            if (hiddenInput) {
+                hiddenInput.remove();
+            }
+            
+            // Desmarcar todos los horarios
+            document.querySelectorAll('.horario-card').forEach(card => {
+                card.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+                card.classList.add('border');
+            });
+        }
+    });
+    
+    // Cargar información de la disciplina
+    function cargarInfoDisciplina(disciplinaId) {
+        fetch(`/disciplinas/${disciplinaId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    mostrarInfoDisciplina(data);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+    
+    function mostrarInfoDisciplina(data) {
+        const disciplinaInfo = document.getElementById('disciplinaInfo');
+        
+        let html = `
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Nombre:</strong> ${data.nombre}</p>
+                    <p><strong>Precio mensual:</strong> $${data.precio}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Clase suelta:</strong> $${data.precio_clase_suelta}</p>
+                    <p><strong>Horarios:</strong> ${data.horarios_count}</p>
+                </div>
+            </div>
+        `;
+        
+        if (data.descripcion) {
+            html += `<p><strong>Descripción:</strong> ${data.descripcion}</p>`;
+        }
+        
+        disciplinaInfo.innerHTML = html;
+    }
+    
+    // Validar formulario antes de enviar
+    document.getElementById('inscripcionForm').addEventListener('submit', function(e) {
+        const alumnoId = document.getElementById('alumnoSelect').value;
+        const disciplinaId = document.getElementById('disciplinaSelect').value;
+        
+        if (!alumnoId || !disciplinaId) {
+            e.preventDefault();
+            alert('Por favor, selecciona un alumno y una disciplina');
+            return;
+        }
+        
+        // Si se seleccionó "sin horario", asegurarse de que no haya input oculto
+        if (document.getElementById('sinHorario').checked) {
+            const hiddenInput = document.getElementById('horarioHiddenInput');
+            if (hiddenInput) {
+                hiddenInput.remove();
+            }
+        }
+    });
+</script>
+
+<style>
+.horario-card {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.horario-card:hover:not(.border-danger):not(.border-warning) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.horario-card.border-primary {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
+}
+</style>
+{% endblock %}

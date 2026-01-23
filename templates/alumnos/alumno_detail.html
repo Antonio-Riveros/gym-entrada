@@ -1,0 +1,370 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ alumno.nombre }} {{ alumno.apellido }} - Sistema Gimnasio MMA{% endblock %}
+
+{% block page_title %}Detalle del Alumno{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'alumno_list' %}">Alumnos</a></li>
+<li class="breadcrumb-item active">{{ alumno.nombre }} {{ alumno.apellido }}</li>
+{% endblock %}
+
+{% block header_buttons %}
+<a href="{% url 'alumno_update' alumno.id %}" class="btn btn-custom-primary">
+    <i class="fas fa-edit me-2"></i>Editar Alumno
+</a>
+<a href="{% url 'alumno_list' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Columna izquierda: Información del Alumno -->
+    <div class="col-lg-4">
+        <!-- Tarjeta de Perfil -->
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                {% if alumno.foto %}
+                <img src="{{ alumno.foto.url }}" alt="Foto" class="rounded-circle border mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                {% else %}
+                <div class="rounded-circle border d-flex align-items-center justify-content-center mx-auto mb-3" 
+                     style="width: 150px; height: 150px; background-color: #f8f9fa;">
+                    <i class="fas fa-user fa-4x text-secondary"></i>
+                </div>
+                {% endif %}
+                
+                <h4 class="mb-1">{{ alumno.nombre }} {{ alumno.apellido }}</h4>
+                <p class="text-muted mb-3">ID: {{ alumno.id }}</p>
+                
+                <div class="d-flex justify-content-center mb-3">
+                    {% if alumno.activo %}
+                    <span class="badge-status badge-active me-2">Activo</span>
+                    {% else %}
+                    <span class="badge-status badge-inactive me-2">Inactivo</span>
+                    {% endif %}
+                    
+                    {% if alumno.rfid %}
+                    <span class="badge bg-success">Tarjeta RFID</span>
+                    {% endif %}
+                </div>
+                
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="tel:{{ alumno.telefono }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-phone me-1"></i>Llamar
+                    </a>
+                    {% if alumno.email %}
+                    <a href="mailto:{{ alumno.email }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-envelope me-1"></i>Email
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Información de Contacto -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Información de Contacto</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="small text-muted mb-1">Teléfono</label>
+                    <p class="mb-0">{{ alumno.telefono }}</p>
+                </div>
+                
+                {% if alumno.email %}
+                <div class="mb-3">
+                    <label class="small text-muted mb-1">Correo Electrónico</label>
+                    <p class="mb-0">{{ alumno.email }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <label class="small text-muted mb-1">Fecha de Nacimiento</label>
+                    <p class="mb-0">{{ alumno.fecha_nacimiento|date:"d/m/Y" }}</p>
+                    <small class="text-muted">{{ alumno.fecha_nacimiento|timesince }} de edad</small>
+                </div>
+                
+                <div>
+                    <label class="small text-muted mb-1">Fecha de Inscripción</label>
+                    <p class="mb-0">{{ alumno.fecha_inscripcion|date:"d/m/Y" }}</p>
+                    <small class="text-muted">Hace {{ alumno.fecha_inscripcion|timesince }}</small>
+                </div>
+            </div>
+        </div>
+        
+        
+    </div>
+    
+    <!-- Columna derecha: Disciplinas y Pagos -->
+    <div class="col-lg-8">
+        <!-- Pestañas -->
+        <ul class="nav nav-tabs mb-4" id="alumnoTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="disciplinas-tab" data-bs-toggle="tab" data-bs-target="#disciplinas" type="button">
+                    <i class="fas fa-list-alt me-2"></i>Disciplinas
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pagos-tab" data-bs-toggle="tab" data-bs-target="#pagos" type="button">
+                    <i class="fas fa-money-bill-wave me-2"></i>Historial de Pagos
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="accesos-tab" data-bs-toggle="tab" data-bs-target="#accesos" type="button">
+                    <i class="fas fa-history me-2"></i>Historial de Accesos
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="alumnoTabContent">
+            <!-- Pestaña de Disciplinas -->
+            <div class="tab-pane fade show active" id="disciplinas" role="tabpanel">
+                {% if inscripciones %}
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Disciplinas Inscritas</h6>
+                            <a href="{% url 'admin:pagos_inscripcion_add' %}?alumno={{ alumno.id }}" class="btn btn-sm btn-custom-primary">
+                                <i class="fas fa-plus me-1"></i>Nueva Inscripción
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Disciplina</th>
+                                        <th>Horario</th>
+                                        <th>Fecha Inscripción</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for inscripcion in inscripciones %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ inscripcion.disciplina.get_nombre_display }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if inscripcion.horario %}
+                                            {{ inscripcion.horario.get_dia_semana_display }} 
+                                            {{ inscripcion.horario.hora_inicio|time:"H:i" }}
+                                            {% else %}
+                                            <span class="text-muted">Sin horario fijo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ inscripcion.fecha_inscripcion|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if inscripcion.activa %}
+                                            <span class="badge-status badge-active">Activa</span>
+                                            {% else %}
+                                            <span class="badge-status badge-inactive">Inactiva</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'admin:pagos_inscripcion_change' inscripcion.id %}" 
+                                               class="btn btn-sm btn-outline-secondary" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-list-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No hay disciplinas inscritas</h5>
+                        <p class="text-muted mb-4">Este alumno no está inscrito en ninguna disciplina.</p>
+                        <a href="{% url 'admin:pagos_inscripcion_add' %}?alumno={{ alumno.id }}" class="btn btn-custom-primary">
+                            <i class="fas fa-plus-circle me-2"></i>Inscribir en Disciplina
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Pestaña de Pagos -->
+            <div class="tab-pane fade" id="pagos" role="tabpanel">
+                {% if pagos %}
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Historial de Pagos</h6>
+                            <div>
+                                <span class="badge bg-success me-2">Pagados: {{ pagos_pagados }}</span>
+                                <span class="badge bg-warning">Pendientes: {{ pagos_pendientes }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Monto</th>
+                                        <th>Vencimiento</th>
+                                        <th>Método</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pago in pagos %}
+                                    <tr>
+                                        <td>{{ pago.fecha_pago|date:"d/m/Y" }}</td>
+                                        <td><strong>${{ pago.monto }}</strong></td>
+                                        <td>{{ pago.fecha_vencimiento|date:"d/m/Y" }}</td>
+                                        <td>{{ pago.get_metodo_pago_display }}</td>
+                                        <td>
+                                            {% if pago.pagado %}
+                                            <span class="badge-status badge-active">Pagado</span>
+                                            {% else %}
+                                            <span class="badge-status badge-pending">Pendiente</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'admin:pagos_pago_change' pago.id %}" 
+                                               class="btn btn-sm btn-outline-secondary" title="Ver detalles">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No hay pagos registrados</h5>
+                        <p class="text-muted mb-4">Este alumno no tiene pagos registrados en el sistema.</p>
+                        <a href="{% url 'admin:pagos_pago_add' %}?alumno={{ alumno.id }}" class="btn btn-custom-primary">
+                            <i class="fas fa-money-bill-wave me-2"></i>Registrar Primer Pago
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Pestaña de Accesos -->
+            <div class="tab-pane fade" id="accesos" role="tabpanel">
+                {% if accesos %}
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Historial de Accesos</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha y Hora</th>
+                                        <th>Tipo</th>
+                                        <th>Observación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for acceso in accesos %}
+                                    <tr>
+                                        <td>{{ acceso.fecha_hora|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            {% if acceso.tipo == 'RFID' %}
+                                            <span class="badge bg-success">RFID</span>
+                                            {% elif acceso.tipo == 'MANUAL' %}
+                                            <span class="badge bg-warning text-dark">Manual</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">Denegado</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ acceso.observacion|default:"-" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-door-open fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No hay accesos registrados</h5>
+                        <p class="text-muted mb-4">Este alumno no tiene registros de acceso al gimnasio.</p>
+                        <a href="{% url 'admin:acceso_acceso_add' %}?alumno={{ alumno.id }}" class="btn btn-custom-primary">
+                            <i class="fas fa-key me-2"></i>Registrar Acceso Manual
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Estadísticas Rápidas -->
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-label">Total Invertido</div>
+                    <div class="stat-value text-success">${{ total_invertido }}</div>
+                    <div class="mt-2">
+                        <small class="text-muted">En todas las disciplinas</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-label">Días como Alumno</div>
+                    <div class="stat-value text-primary">{{ dias_alumno }}</div>
+                    <div class="mt-2">
+                        <small class="text-muted">Desde la inscripción</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-label">Próximo Vencimiento</div>
+                    {% if proximo_vencimiento %}
+                    <div class="stat-value {% if proximo_vencimiento.pagado %}text-success{% else %}text-warning{% endif %}">
+                        {{ proximo_vencimiento.fecha_vencimiento|date:"d/m" }}
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            {% if proximo_vencimiento.pagado %}Pagado{% else %}Pendiente{% endif %}
+                        </small>
+                    </div>
+                    {% else %}
+                    <div class="stat-value text-muted">-</div>
+                    <div class="mt-2">
+                        <small class="text-muted">Sin pagos registrados</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize tabs
+    var triggerTabList = [].slice.call(document.querySelectorAll('#alumnoTab button'))
+    triggerTabList.forEach(function (triggerEl) {
+        var tabTrigger = new bootstrap.Tab(triggerEl)
+        triggerEl.addEventListener('click', function (event) {
+            event.preventDefault()
+            tabTrigger.show()
+        })
+    });
+</script>
+{% endblock %}
