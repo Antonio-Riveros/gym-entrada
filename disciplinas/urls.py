@@ -21,4 +21,11 @@ urlpatterns = [
     path('api/<int:pk>/activar/', views.ActivarDesactivarDisciplinaView.as_view(), name='disciplina_activar'),
     path('api/activar-lote/', views.ActivarDesactivarLoteView.as_view(), name='disciplina_activar_lote'),
     path('api/cambiar-precio-lote/', views.CambiarPrecioLoteView.as_view(), name='disciplina_cambiar_precio_lote'),
+    
+    # Horarios
+    path('<int:disciplina_id>/horarios/nuevo/', views.HorarioCreateView.as_view(), name='horario_create'),
+    path('horarios/<int:pk>/editar/', views.HorarioUpdateView.as_view(), name='horario_update'),
+    
+    # API para horarios
+    path('api/horarios-disciplina/', views.obtener_horarios_disciplina, name='obtener_horarios_disciplina'),
 ]

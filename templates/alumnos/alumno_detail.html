@@ -215,6 +215,7 @@
                                         <th>Vencimiento</th>
                                         <th>Método</th>
                                         <th>Estado</th>
+                                        <th>Disciplina</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -223,8 +224,22 @@
                                     <tr>
                                         <td>{{ pago.fecha_pago|date:"d/m/Y" }}</td>
                                         <td><strong>${{ pago.monto }}</strong></td>
-                                        <td>{{ pago.fecha_vencimiento|date:"d/m/Y" }}</td>
-                                        <td>{{ pago.get_metodo_pago_display }}</td>
+                                        <td>
+                                            {{ pago.fecha_vencimiento|date:"d/m/Y" }}
+                                            {% if not pago.pagado and pago.fecha_vencimiento < today %}
+                                            <span class="badge bg-danger ms-1">Vencido</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if pago.metodo_pago == 'EFECTIVO' %}bg-success
+                                                {% elif pago.metodo_pago == 'TRANSFERENCIA' %}bg-primary
+                                                {% elif pago.metodo_pago == 'TARJETA' %}bg-info
+                                                {% elif pago.metodo_pago == 'MERCADO_PAGO' %}bg-warning
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ pago.get_metodo_pago_display }}
+                                            </span>
+                                        </td>
                                         <td>
                                             {% if pago.pagado %}
                                             <span class="badge-status badge-active">Pagado</span>
@@ -233,10 +248,23 @@
                                             {% endif %}
                                         </td>
                                         <td>
+                                            {% if pago.relacion_inscripcion %}
+                                            <small>{{ pago.relacion_inscripcion.disciplina.get_nombre_display }}</small>
+                                            {% else %}
+                                            <small class="text-muted">General</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
                                             <a href="{% url 'admin:pagos_pago_change' pago.id %}" 
-                                               class="btn btn-sm btn-outline-secondary" title="Ver detalles">
+                                            class="btn btn-sm btn-outline-secondary" title="Ver detalles">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            {% if not pago.pagado %}
+                                            <a href="{% url 'admin:pagos_pago_change' pago.id %}" 
+                                            class="btn btn-sm btn-success" title="Marcar como pagado">
+                                                <i class="fas fa-check"></i>
+                                            </a>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}

@@ -1,42 +1,78 @@
 {% extends 'base.html' %}
 
-{% block title %}Gestión de Alumnos - Sistema Gimnasio MMA{% endblock %}
+{% block title %}Alumnos - Sistema Gimnasio MMA{% endblock %}
 
 {% block page_title %}Gestión de Alumnos{% endblock %}
-
-{% block breadcrumb %}
-<li class="breadcrumb-item active">Alumnos</li>
-{% endblock %}
+{% block page_subtitle %}Administra los alumnos, inscripciones y accesos{% endblock %}
 
 {% block header_buttons %}
-<a href="{% url 'registro_rapido_completo' %}" class="btn btn-custom-primary">
-    <i class="fas fa-user-plus me-2"></i>Nuevo Alumno
+<a href="{% url 'alumno_create' %}" class="btn btn-success-custom me-2">
+    <i class="fas fa-plus-circle me-2"></i>Nuevo Alumno
+</a>
+<a href="{% url 'inscripcion_rapida' %}" class="btn btn-primary-custom">
+    <i class="fas fa-user-plus me-2"></i>Inscripción Rápida
 </a>
 {% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <!-- Search and Filter Card -->
+        <!-- Estadísticas Rápidas -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Total Alumnos</div>
+                    <div class="stat-value text-primary">{{ total_alumnos }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Alumnos Activos</div>
+                    <div class="stat-value text-success">{{ alumnos_activos }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Nuevos este Mes</div>
+                    <div class="stat-value text-info">{{ nuevos_mes }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Con Deuda</div>
+                    <div class="stat-value text-warning">{{ con_deuda }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros y Búsqueda -->
         <div class="card mb-4">
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
-                        <div class="search-box">
+                    <div class="col-md-8">
+                        <div class="input-group">
                             <input type="text" id="searchInput" class="form-control form-control-custom" 
-                                   placeholder="Buscar por nombre, apellido o teléfono...">
-                            <i class="fas fa-search search-icon"></i>
+                                   placeholder="Buscar por nombre, apellido, teléfono o email...">
+                            <button class="btn btn-outline-secondary" type="button" onclick="buscarAlumnos()">
+                                <i class="fas fa-search"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="d-flex justify-content-end gap-2">
-                            <select class="form-select form-select-custom" style="width: auto;">
-                                <option selected>Estado: Todos</option>
-                                <option value="activo">Activos</option>
-                                <option value="inactivo">Inactivos</option>
-                            </select>
-                            <button class="btn btn-outline-secondary">
-                                <i class="fas fa-filter me-2"></i>Filtrar
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+                                        data-bs-toggle="dropdown">
+                                    <i class="fas fa-filter me-2"></i>Filtrar
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="?status=activo">Solo Activos</a></li>
+                                    <li><a class="dropdown-item" href="?status=inactivo">Solo Inactivos</a></li>
+                                    <li><a class="dropdown-item" href="?">Mostrar Todos</a></li>
+                                </ul>
+                            </div>
+                            <button class="btn btn-outline-secondary" onclick="exportarAlumnos()">
+                                <i class="fas fa-download me-2"></i>Exportar
                             </button>
                         </div>
                     </div>
@@ -44,221 +80,902 @@
             </div>
         </div>
 
-        <!-- Alumnos Table -->
+        <!-- Lista de Alumnos -->
         <div class="card">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Lista de Alumnos</h5>
-                    <span class="badge bg-primary">{{ total_alumnos }} alumnos</span>
+                    <h5 class="mb-0">Todos los Alumnos</h5>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-primary me-3">{{ alumnos|length }} alumnos</span>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="mostrarInactivos" 
+                                   onchange="filtrarActivos()">
+                            <label class="form-check-label" for="mostrarInactivos">
+                                Mostrar inactivos
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
+            
             <div class="card-body p-0">
                 {% if alumnos %}
                 <div class="table-responsive">
-                    <table class="table table-hover table-custom mb-0" id="alumnosTable">
+                    <table class="table table-custom mb-0" id="alumnosTable">
                         <thead>
                             <tr>
-                                <th width="50">ID</th>
-                                <th>Nombre Completo</th>
-                                <th>Teléfono</th>
+                                <th width="40" class="text-center">
+                                    <input type="checkbox" id="selectAll" onclick="toggleSelectAll()">
+                                </th>
+                                <th>Alumno</th>
+                                <th>Contacto</th>
+                                <th>Disciplinas Inscritas</th>
+                                <th>Estado de Pagos</th>
+                                <th>Último Acceso</th>
                                 <th>Estado</th>
-                                <th>Fecha Inscripción</th>
-                                <th>Disciplinas</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for alumno in alumnos %}
-                            <tr>
-                                <td>{{ alumno.id }}</td>
+                            <tr data-alumno-id="{{ alumno.id }}" 
+                                data-activo="{% if alumno.activo %}true{% else %}false{% endif %}">
+                                <td class="text-center">
+                                    <input type="checkbox" class="alumno-checkbox" 
+                                           value="{{ alumno.id }}">
+                                </td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        {% if alumno.foto %}
-                                        <img src="{{ alumno.foto.url }}" alt="{{ alumno.nombre }}" 
-                                             class="rounded-circle me-3" width="40" height="40">
-                                        {% else %}
-                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-3" 
-                                             style="width: 40px; height: 40px;">
-                                            <i class="fas fa-user text-white"></i>
-                                        </div>
-                                        {% endif %}
-                                        <div>
-                                            <strong>{{ alumno.nombre }} {{ alumno.apellido }}</strong>
-                                            {% if alumno.email %}
-                                            <br>
-                                            <small class="text-muted">{{ alumno.email }}</small>
+                                        <div class="me-3">
+                                            {% if alumno.foto %}
+                                            <img src="{{ alumno.foto.url }}" alt="{{ alumno }}" 
+                                                 class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                            {% else %}
+                                            <div class="alumno-icon bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" 
+                                                 style="width: 40px; height: 40px;">
+                                                <i class="fas fa-user text-primary"></i>
+                                            </div>
                                             {% endif %}
                                         </div>
+                                        <div>
+                                            <a href="{% url 'alumno_detail' alumno.id %}" class="text-decoration-none">
+                                                <strong>{{ alumno.apellido }}, {{ alumno.nombre }}</strong>
+                                            </a>
+                                            {% if not alumno.activo %}
+                                            <span class="badge bg-warning ms-2">Inactivo</span>
+                                            {% endif %}
+                                            <br>
+                                            <small class="text-muted">
+                                                ID: {{ alumno.id }} | 
+                                                Edad: {{ alumno.fecha_nacimiento|timesince:today|slice:":2" }} años
+                                            </small>
+                                        </div>
                                     </div>
                                 </td>
-                                <td>{{ alumno.telefono }}</td>
+                                <td>
+                                    <div class="mb-1">
+                                        <i class="fas fa-phone me-2 text-muted"></i>
+                                        {{ alumno.telefono }}
+                                    </div>
+                                    {% if alumno.email %}
+                                    <div>
+                                        <i class="fas fa-envelope me-2 text-muted"></i>
+                                        <small>{{ alumno.email }}</small>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% with inscripciones=alumno.inscripcion_set.all %}
+                                    {% if inscripciones %}
+                                    <div class="d-flex flex-wrap gap-1 mb-1">
+                                        {% for inscripcion in inscripciones|slice:":3" %}
+                                        {% if inscripcion.activa %}
+                                        <span class="badge bg-success" 
+                                              title="{{ inscripcion.disciplina.get_nombre_display }}{% if inscripcion.horario %} - {{ inscripcion.horario.get_dia_semana_display }} {{ inscripcion.horario.hora_inicio|time:'H:i' }}{% endif %}">
+                                            {{ inscripcion.disciplina.get_nombre_display|truncatechars:15 }}
+                                            {% if inscripcion.horario %}
+                                            <small>({{ inscripcion.horario.get_dia_semana_display|slice:':3' }})</small>
+                                            {% endif %}
+                                        </span>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <small class="text-muted">
+                                        {{ inscripciones.count }} disciplina{{ inscripciones.count|pluralize }}
+                                        {% if inscripciones.count > 3 %}...{% endif %}
+                                    </small>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Sin inscripciones</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with pagos=alumno.pago_set.all %}
+                                    {% if pagos %}
+                                    {% with ultimo_pago=pagos.first %}
+                                    <div class="d-flex align-items-center">
+                                        {% if ultimo_pago.pagado %}
+                                        <span class="badge bg-success me-1">
+                                            <i class="fas fa-check"></i> Pagado
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-danger me-1">
+                                            <i class="fas fa-exclamation-triangle"></i> Pendiente
+                                        </span>
+                                        {% endif %}
+                                        <small class="text-muted">
+                                            {{ ultimo_pago.get_metodo_pago_display }}
+                                        </small>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        {{ ultimo_pago.fecha_pago|date:"d/m/Y" }}
+                                    </small>
+                                    {% endwith %}
+                                    {% else %}
+                                    <span class="badge bg-secondary">Sin pagos</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with ultimo_acceso=alumno.acceso_set.last %}
+                                    {% if ultimo_acceso %}
+                                    <small class="d-block">
+                                        {{ ultimo_acceso.fecha_hora|date:"d/m/Y" }}
+                                    </small>
+                                    <small class="text-muted">
+                                        {{ ultimo_acceso.fecha_hora|date:"H:i" }}
+                                    </small>
+                                    {% else %}
+                                    <small class="text-muted">Sin registro</small>
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
                                 <td>
                                     {% if alumno.activo %}
-                                    <span class="badge-status badge-active">Activo</span>
+                                    <span class="badge bg-success">Activo</span>
                                     {% else %}
-                                    <span class="badge-status badge-inactive">Inactivo</span>
+                                    <span class="badge bg-secondary">Inactivo</span>
                                     {% endif %}
+                                    <br>
+                                    <small class="text-muted">
+                                        Desde {{ alumno.fecha_inscripcion|date:"d/m/Y" }}
+                                    </small>
                                 </td>
-                                <td>{{ alumno.fecha_inscripcion|date:"d/m/Y" }}</td>
-                                <td>
-                                    {% if alumno.inscripciones.count > 0 %}
-                                    <div class="d-flex flex-wrap gap-1">
-                                        {% for inscripcion in alumno.inscripciones.all|slice:":2" %}
-                                        <span class="badge bg-info">{{ inscripcion.disciplina.nombre }}</span>
-                                        {% endfor %}
-                                        {% if alumno.inscripciones.count > 2 %}
-                                        <span class="badge bg-secondary">+{{ alumno.inscripciones.count|add:"-2" }}</span>
-                                        {% endif %}
-                                    </div>
-                                    {% else %}
-                                    <span class="text-muted">Sin disciplinas</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <a href="{% url 'alumno_detail' alumno.id %}" 
-                                           class="btn btn-sm btn-outline-primary" 
-                                           title="Ver detalles">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{% url 'alumno_update' alumno.id %}" 
-                                           class="btn btn-sm btn-outline-secondary" 
-                                           title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="{% url 'admin:pagos_pago_add' %}?alumno={{ alumno.id }}" 
-                                           class="btn btn-sm btn-outline-success" 
-                                           title="Registrar pago">
-                                            <i class="fas fa-money-bill"></i>
-                                        </a>
-                                        <a href="{% url 'admin:pagos_inscripcion_add' %}?alumno={{ alumno.id }}" 
-                                           class="btn btn-sm btn-outline-info" 
-                                           title="Inscribir en disciplina">
-                                            <i class="fas fa-plus"></i>
-                                        </a>
-                                    </div>
-                                </td>
+                                <!-- Columna de Acciones - REEMPLAZAR desde la línea 203 -->
+<td>
+    <div class="d-flex flex-wrap gap-1" style="min-width: 200px;">
+        <!-- Botón Ver Detalles -->
+        <a href="{% url 'alumno_detail' alumno.id %}" 
+           class="btn btn-sm btn-outline-primary" 
+           title="Ver detalles"
+           data-bs-toggle="tooltip">
+            <i class="fas fa-eye"></i>
+        </a>
+        
+        <!-- Botón Editar -->
+        <a href="{% url 'alumno_update' alumno.id %}" 
+           class="btn btn-sm btn-outline-secondary" 
+           title="Editar alumno"
+           data-bs-toggle="tooltip">
+            <i class="fas fa-edit"></i>
+        </a>
+        
+        <!-- Botón Asignar Disciplina -->
+        <button class="btn btn-sm btn-outline-success" 
+                title="Asignar disciplina"
+                data-bs-toggle="tooltip"
+                onclick="asignarDisciplina({{ alumno.id }})">
+            <i class="fas fa-plus-circle"></i>
+        </button>
+        
+        <!-- Botón Registrar Pago -->
+        <a href="{% url 'admin:pagos_pago_add' %}?alumno={{ alumno.id }}" 
+           class="btn btn-sm btn-outline-info" 
+           title="Registrar pago"
+           data-bs-toggle="tooltip">
+            <i class="fas fa-money-bill-wave"></i>
+        </a>
+        
+        <!-- Botón Reactivar/Desactivar -->
+        {% if alumno.activo %}
+        <button class="btn btn-sm btn-outline-warning" 
+                title="Desactivar alumno"
+                data-bs-toggle="tooltip"
+                onclick="desactivarAlumno({{ alumno.id }})">
+            <i class="fas fa-ban"></i>
+        </button>
+        {% else %}
+        <button class="btn btn-sm btn-outline-success" 
+                title="Reactivar alumno"
+                data-bs-toggle="tooltip"
+                onclick="activarAlumno({{ alumno.id }})">
+            <i class="fas fa-check"></i>
+        </button>
+        {% endif %}
+        
+        <!-- Botón Acceso Rápido -->
+        <button class="btn btn-sm btn-outline-dark" 
+                title="Acceso rápido"
+                data-bs-toggle="tooltip"
+                onclick="registrarAccesoRapido({{ alumno.id }})">
+            <i class="fas fa-door-open"></i>
+        </button>
+        
+        <!-- Dropdown para acciones adicionales -->
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                    type="button" 
+                    data-bs-toggle="dropdown">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="{% url 'admin:acceso_acceso_add' %}?alumno={{ alumno.id }}">
+                        <i class="fas fa-key me-2 text-primary"></i>
+                        Registrar Acceso Manual
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{% url 'admin:pagos_inscripcion_add' %}?alumno={{ alumno.id }}">
+                        <i class="fas fa-list-alt me-2 text-success"></i>
+                        Nueva Inscripción
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item text-danger" href="#" 
+                       onclick="eliminarAlumno({{ alumno.id }})">
+                        <i class="fas fa-trash me-2"></i>
+                        Eliminar Alumno
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Acciones en lote -->
+                <div class="card-footer bg-white border-top-0" id="accionesLote" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span id="seleccionadosCount">0</span> alumnos seleccionados
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary btn-sm" 
+                                    onclick="asignarDisciplinaLote()">
+                                <i class="fas fa-plus-circle me-1"></i>Asignar Disciplina
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" 
+                                    onclick="activarSeleccionados()">
+                                <i class="fas fa-check me-1"></i>Reactivar
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" 
+                                    onclick="desactivarSeleccionados()">
+                                <i class="fas fa-ban me-1"></i>Desactivar
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" 
+                                    onclick="eliminarSeleccionados()">
+                                <i class="fas fa-trash me-1"></i>Eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">No hay alumnos registrados</h5>
+                    <div class="mb-4">
+                        <i class="fas fa-users fa-4x text-muted"></i>
+                    </div>
+                    <h5 class="text-muted mb-3">No hay alumnos registrados</h5>
                     <p class="text-muted mb-4">Comienza agregando tu primer alumno al sistema.</p>
-                    <a href="{% url 'alumno_create' %}" class="btn btn-custom-primary">
-                        <i class="fas fa-user-plus me-2"></i>Agregar Primer Alumno
+                    <a href="{% url 'alumno_create' %}" class="btn btn-success-custom me-2">
+                        <i class="fas fa-plus-circle me-2"></i>Crear Primer Alumno
+                    </a>
+                    <a href="{% url 'registro_rapido_completo' %}" class="btn btn-primary-custom">
+                        <i class="fas fa-user-plus me-2"></i>Registro Rápido
                     </a>
                 </div>
                 {% endif %}
             </div>
-            {% if alumnos %}
-            <div class="card-footer">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        Mostrando <strong>{{ alumnos|length }}</strong> de <strong>{{ total_alumnos }}</strong> alumnos
-                    </div>
-                    <nav aria-label="Navegación de páginas">
-                        <ul class="pagination pagination-custom mb-0">
-                            {% if page_obj.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
-                            </li>
-                            {% endif %}
-                            
-                            {% for num in page_obj.paginator.page_range %}
-                                {% if page_obj.number == num %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ num }}</span>
-                                </li>
-                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                                </li>
-                                {% endif %}
-                            {% endfor %}
-                            
-                            {% if page_obj.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
-                </div>
-            </div>
-            {% endif %}
         </div>
+    </div>
+</div>
 
-        <!-- Quick Stats -->
-        <div class="row mt-4">
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-label">Alumnos Activos</div>
-                    <div class="stat-value text-success">{{ alumnos_activos }}</div>
-                    <div class="mt-2">
-                        <small class="text-muted">{{ porcentaje_activos|floatformat:1 }}% del total</small>
-                    </div>
+<!-- Modal para asignar disciplina -->
+<div class="modal fade" id="asignarDisciplinaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitulo">Asignar Disciplina</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalIndividual" style="display: none;">
+                    <p>Asignar disciplina a: <strong id="nombreAlumno"></strong></p>
+                </div>
+                <div id="modalLote" style="display: none;">
+                    <p>Asignar disciplina a <span id="cantidadAlumnos">0</span> alumnos seleccionados.</p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Seleccionar Disciplina *</label>
+                    <select class="form-control form-control-custom" id="disciplinaSelect">
+                        <option value="">Selecciona una disciplina...</option>
+                        {% for disciplina in disciplinas %}
+                        <option value="{{ disciplina.id }}" data-precio="{{ disciplina.precio_mensual }}">
+                            {{ disciplina.get_nombre_display }} - ${{ disciplina.precio_mensual }}/mes
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Horario (Opcional)</label>
+                    <select class="form-control form-control-custom" id="horarioSelect">
+                        <option value="">Sin horario específico</option>
+                    </select>
+                    <small class="text-muted">Selecciona un horario específico si lo deseas</small>
+                </div>
+                
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="registrarPago">
+                    <label class="form-check-label" for="registrarPago">
+                        Registrar pago automáticamente
+                    </label>
+                    <small class="text-muted d-block">
+                        Se registrará un pago por el monto de la disciplina
+                    </small>
+                </div>
+                
+                <div class="alert alert-info alert-custom">
+                    <small>
+                        <i class="fas fa-info-circle me-2"></i>
+                        Esta acción creará una inscripción activa para el/los alumno(s) seleccionado(s).
+                    </small>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-label">Nuevos este Mes</div>
-                    <div class="stat-value text-primary">{{ nuevos_mes }}</div>
-                    <div class="mt-2">
-                        <small class="text-muted">Inscripciones recientes</small>
-                    </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-primary-custom" onclick="confirmarAsignacion()">
+                    <i class="fas fa-check me-2"></i>Asignar Disciplina
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar eliminación -->
+<div class="modal fade" id="confirmarEliminarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="mensajeEliminar"></p>
+                <div class="alert alert-warning">
+                    <small>
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Advertencia:</strong> Esta acción no se puede deshacer.
+                        Los alumnos con inscripciones activas se desactivarán en lugar de eliminarse.
+                    </small>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-label">Con Pago Pendiente</div>
-                    <div class="stat-value text-warning">{{ con_deuda }}</div>
-                    <div class="mt-2">
-                        <small class="text-muted">Requieren atención</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-label">Inscripciones</div>
-                    <div class="stat-value text-info">{{ total_inscripciones }}</div>
-                    <div class="mt-2">
-                        <small class="text-muted">Total de inscripciones activas</small>
-                    </div>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarEliminar">
+                    <i class="fas fa-trash me-2"></i>Confirmar Eliminación
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // Search functionality
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-        var input = this.value.toLowerCase();
-        var rows = document.querySelectorAll('#alumnosTable tbody tr');
+    // Variables globales
+    let alumnosSeleccionados = new Set();
+    let alumnoActual = null;
+    let esAccionLote = false;
+
+    // Búsqueda de alumnos
+    function buscarAlumnos() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#alumnosTable tbody tr');
         
-        rows.forEach(function(row) {
-            var text = row.textContent.toLowerCase();
-            row.style.display = text.includes(input) ? '' : 'none';
+        rows.forEach(row => {
+            const nombre = row.cells[1].textContent.toLowerCase();
+            const contacto = row.cells[2].textContent.toLowerCase();
+            
+            if (nombre.includes(searchTerm) || contacto.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
         });
-    });
-    
-    // Quick actions
-    function quickAction(alumnoId, action) {
-        switch(action) {
-            case 'pago':
-                window.location.href = `/admin/pagos/pago/add/?alumno=${alumnoId}`;
-                break;
-            case 'inscripcion':
-                window.location.href = `/admin/pagos/inscripcion/add/?alumno=${alumnoId}`;
-                break;
-            case 'detalle':
-                window.location.href = `/alumnos/${alumnoId}/`;
-                break;
+    }
+
+    // Filtrar activos/inactivos
+    function filtrarActivos() {
+        const mostrarInactivos = document.getElementById('mostrarInactivos').checked;
+        const rows = document.querySelectorAll('#alumnosTable tbody tr');
+        
+        rows.forEach(row => {
+            const esActivo = row.getAttribute('data-activo') === 'true';
+            
+            if (!mostrarInactivos && !esActivo) {
+                row.style.display = 'none';
+            } else {
+                row.style.display = '';
+            }
+        });
+    }
+
+    // Seleccionar/deseleccionar todos
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.alumno-checkbox');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAll.checked;
+            actualizarSeleccion(checkbox);
+        });
+        
+        actualizarAccionesEnLote();
+    }
+
+    // Actualizar selección individual
+    function actualizarSeleccion(checkbox) {
+        const alumnoId = checkbox.value;
+        
+        if (checkbox.checked) {
+            alumnosSeleccionados.add(alumnoId);
+        } else {
+            alumnosSeleccionados.delete(alumnoId);
+            document.getElementById('selectAll').checked = false;
+        }
+        
+        actualizarAccionesEnLote();
+    }
+
+    // Actualizar barra de acciones en lote
+    function actualizarAccionesEnLote() {
+        const contador = document.getElementById('seleccionadosCount');
+        const accionesLote = document.getElementById('accionesLote');
+        
+        contador.textContent = alumnosSeleccionados.size;
+        
+        if (alumnosSeleccionados.size > 0) {
+            accionesLote.style.display = 'block';
+        } else {
+            accionesLote.style.display = 'none';
         }
     }
+
+    // ASIGNAR DISCIPLINA - Individual
+    function asignarDisciplina(alumnoId) {
+        alumnoActual = alumnoId;
+        esAccionLote = false;
+        
+        // Obtener nombre del alumno
+        const row = document.querySelector(`tr[data-alumno-id="${alumnoId}"]`);
+        const nombre = row.cells[1].querySelector('strong').textContent;
+        
+        // Configurar modal
+        document.getElementById('nombreAlumno').textContent = nombre;
+        document.getElementById('modalIndividual').style.display = 'block';
+        document.getElementById('modalLote').style.display = 'none';
+        document.getElementById('modalTitulo').textContent = 'Asignar Disciplina';
+        
+        // Cargar horarios cuando se selecciona disciplina
+        document.getElementById('disciplinaSelect').addEventListener('change', function() {
+            cargarHorarios(this.value);
+        });
+        
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('asignarDisciplinaModal'));
+        modal.show();
+    }
+
+    // ASIGNAR DISCIPLINA - En lote
+    function asignarDisciplinaLote() {
+        if (alumnosSeleccionados.size === 0) return;
+        
+        esAccionLote = true;
+        document.getElementById('cantidadAlumnos').textContent = alumnosSeleccionados.size;
+        document.getElementById('modalIndividual').style.display = 'none';
+        document.getElementById('modalLote').style.display = 'block';
+        document.getElementById('modalTitulo').textContent = 'Asignar Disciplina en Lote';
+        
+        // Cargar horarios cuando se selecciona disciplina
+        document.getElementById('disciplinaSelect').addEventListener('change', function() {
+            cargarHorarios(this.value);
+        });
+        
+        const modal = new bootstrap.Modal(document.getElementById('asignarDisciplinaModal'));
+        modal.show();
+    }
+
+    // Cargar horarios de una disciplina
+    function cargarHorarios(disciplinaId) {
+        const horarioSelect = document.getElementById('horarioSelect');
+        horarioSelect.innerHTML = '<option value="">Sin horario específico</option>';
+        
+        if (!disciplinaId) return;
+        
+        // Llamada AJAX para obtener horarios
+        fetch(`/disciplinas/api/horarios-disciplina/?disciplina_id=${disciplinaId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.horarios) {
+                    data.horarios.forEach(horario => {
+                        const option = document.createElement('option');
+                        option.value = horario.id;
+                        option.textContent = `${horario.dia} ${horario.hora_inicio}-${horario.hora_fin} (${horario.disponible}/${horario.capacidad} disp.)`;
+                        option.disabled = horario.lleno;
+                        horarioSelect.appendChild(option);
+                    });
+                }
+            });
+    }
+
+    // Confirmar asignación de disciplina
+    function confirmarAsignacion() {
+        const disciplinaId = document.getElementById('disciplinaSelect').value;
+        const horarioId = document.getElementById('horarioSelect').value || null;
+        const registrarPago = document.getElementById('registrarPago').checked;
+        
+        if (!disciplinaId) {
+            alert('Por favor selecciona una disciplina.');
+            return;
+        }
+        
+        let ids = [];
+        if (esAccionLote) {
+            ids = Array.from(alumnosSeleccionados);
+        } else {
+            ids = [alumnoActual];
+        }
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('asignarDisciplinaModal'));
+        
+        // Enviar petición AJAX
+        fetch('/alumnos/api/asignar-disciplina-lote/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ids: ids,
+                disciplina_id: disciplinaId,
+                horario_id: horarioId,
+                registrar_pago: registrarPago
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                modal.hide();
+                location.reload(); // Recargar para ver cambios
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error en la conexión: ' + error);
+        });
+    }
+
+    // ACTIVAR ALUMNO - Individual
+    function activarAlumno(alumnoId) {
+        if (confirm('¿Reactivar este alumno? Podrá acceder al gimnasio nuevamente.')) {
+            fetch(`/alumnos/api/${alumnoId}/activar/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                }
+            });
+        }
+    }
+
+    // DESACTIVAR ALUMNO - Individual
+    function desactivarAlumno(alumnoId) {
+        if (confirm('¿Desactivar este alumno? No podrá acceder al gimnasio.')) {
+            fetch(`/alumnos/api/${alumnoId}/desactivar/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                }
+            });
+        }
+    }
+
+    // ACCESO RÁPIDO - Registrar acceso manual
+function registrarAccesoRapido(alumnoId) {
+    if (confirm('¿Registrar acceso manual para este alumno?')) {
+        fetch(`/acceso/api/${alumnoId}/registrar-acceso/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                tipo: 'MANUAL',
+                observacion: 'Acceso rápido desde lista'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                // Actualizar solo la fila del alumno
+                const row = document.querySelector(`tr[data-alumno-id="${alumnoId}"]`);
+                if (row) {
+                    const accesoCell = row.cells[5]; // Columna "Último Acceso"
+                    accesoCell.innerHTML = `
+                        <small class="d-block">${data.fecha}</small>
+                        <small class="text-muted">${data.hora}</small>
+                        <small class="badge bg-success">Ahora</small>
+                    `;
+                }
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error en la conexión: ' + error);
+        });
+    }
+}
+
+
+    // ELIMINAR ALUMNO - Individual
+    function eliminarAlumno(alumnoId) {
+        // Obtener información del alumno
+        const row = document.querySelector(`tr[data-alumno-id="${alumnoId}"]`);
+        const nombre = row.cells[1].querySelector('strong').textContent;
+        
+        // Configurar modal
+        document.getElementById('mensajeEliminar').textContent = 
+            `¿Está seguro que desea eliminar al alumno "${nombre}"?`;
+        
+        // Configurar botón de confirmación
+        document.getElementById('btnConfirmarEliminar').onclick = function() {
+            confirmarEliminacion(alumnoId);
+        };
+        
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('confirmarEliminarModal'));
+        modal.show();
+    }
+
+    // Confirmar eliminación
+    function confirmarEliminacion(alumnoId) {
+        fetch(`/alumnos/api/${alumnoId}/eliminar/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmarEliminarModal'));
+            modal.hide();
+            
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+
+    // ACTIVAR en lote
+    function activarSeleccionados() {
+        if (alumnosSeleccionados.size === 0) return;
+        
+        if (confirm(`¿Reactivar ${alumnosSeleccionados.size} alumnos seleccionados?`)) {
+            fetch('/alumnos/api/activar-lote/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: Array.from(alumnosSeleccionados) })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                }
+            });
+        }
+    }
+
+    // DESACTIVAR en lote
+    function desactivarSeleccionados() {
+        if (alumnosSeleccionados.size === 0) return;
+        
+        if (confirm(`¿Desactivar ${alumnosSeleccionados.size} alumnos seleccionados?`)) {
+            fetch('/alumnos/api/desactivar-lote/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: Array.from(alumnosSeleccionados) })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                }
+            });
+        }
+    }
+
+    // ELIMINAR en lote
+    function eliminarSeleccionados() {
+        if (alumnosSeleccionados.size === 0) return;
+        
+        // Configurar modal
+        document.getElementById('mensajeEliminar').textContent = 
+            `¿Está seguro que desea eliminar ${alumnosSeleccionados.size} alumnos seleccionados?`;
+        
+        // Configurar botón de confirmación
+        document.getElementById('btnConfirmarEliminar').onclick = function() {
+            confirmarEliminacionLote();
+        };
+        
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('confirmarEliminarModal'));
+        modal.show();
+    }
+
+    // Confirmar eliminación en lote
+    function confirmarEliminacionLote() {
+        fetch('/alumnos/api/eliminar-lote/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ids: Array.from(alumnosSeleccionados) })
+        })
+        .then(response => response.json())
+        .then(data => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmarEliminarModal'));
+            modal.hide();
+            
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+
+    // Exportar alumnos
+    function exportarAlumnos() {
+        // Simular descarga
+        const contenido = 'Datos de Alumnos\n\n' + 
+                         'Nombre, Teléfono, Email, Estado, Inscripciones, Último Pago\n' +
+                         Array.from(document.querySelectorAll('#alumnosTable tbody tr'))
+                         .map(row => {
+                             const nombre = row.cells[1].querySelector('strong').textContent;
+                             const telefono = row.cells[2].querySelector('.mb-1').textContent.trim();
+                             const email = row.cells[2].querySelector('small')?.textContent || 'Sin email';
+                             const estado = row.cells[6].querySelector('.badge').textContent;
+                             const inscripciones = row.cells[3].querySelector('small').textContent;
+                             const pago = row.cells[4].textContent;
+                             return `${nombre}, ${telefono}, ${email}, ${estado}, ${inscripciones}, ${pago}`;
+                         }).join('\n');
+        
+        const blob = new Blob([contenido], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'alumnos.txt';
+        a.click();
+    }
+
+    // Búsqueda en tiempo real
+    document.getElementById('searchInput').addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') {
+            buscarAlumnos();
+        }
+    });
+
+    // Inicializar checkboxes
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.alumno-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                actualizarSeleccion(this);
+            });
+        });
+    });
 </script>
+
+<style>
+    /* Estilos para botones rápidos */
+    .btn-group-rapido {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border-radius: 0.25rem;
+    }
+    
+    /* Efecto hover en filas */
+    #alumnosTable tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+        cursor: pointer;
+    }
+    
+    /* Badges mejorados */
+    .badge-sm {
+        font-size: 0.65em;
+        padding: 0.2em 0.4em;
+    }
+    
+    /* Tooltips personalizados */
+    .tooltip-inner {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    /* Indicador visual para pagos pendientes */
+    .pago-pendiente {
+        position: relative;
+    }
+    
+    .pago-pendiente::after {
+        content: "⚠";
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        color: #dc3545;
+        font-size: 12px;
+    }
+</style>
+
+
+
+
 {% endblock %}

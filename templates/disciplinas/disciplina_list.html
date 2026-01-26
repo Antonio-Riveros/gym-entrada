@@ -43,7 +43,8 @@
                     <div class="stat-value text-info">
                         {% with total=0 %}
                         {% for disciplina in disciplinas %}
-                            {% with total=total|add:disciplina.horarios.count %}{% endwith %}
+                            {% with total=total|add:disciplina.horarios.count %}
+                            {% endwith %}
                         {% endfor %}
                         {{ total|default:0 }}
                         {% endwith %}
@@ -96,100 +97,131 @@
             </div>
         </div>
 
-        <!-- Lista de Disciplinas -->
+        <!-- Lista de Disciplinas como Tarjetas -->
         <div class="card">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Todas las Disciplinas</h5>
                     <div class="d-flex align-items-center">
                         <span class="badge bg-primary me-3">{{ disciplinas|length }} disciplinas</span>
-                        <div class="form-check form-switch">
+                        <div class="form-check form-switch me-3">
                             <input class="form-check-input" type="checkbox" id="mostrarInactivas" 
                                    onchange="filtrarActivas()">
                             <label class="form-check-label" for="mostrarInactivas">
                                 Mostrar inactivas
                             </label>
                         </div>
+                        <div class="form-check">
+                            <input type="checkbox" id="selectAll" onclick="toggleSelectAll()">
+                            <label class="form-check-label" for="selectAll">
+                                Seleccionar todas
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <div class="card-body p-0">
+            <div class="card-body">
                 {% if disciplinas %}
-                <div class="table-responsive">
-                    <table class="table table-custom mb-0" id="disciplinasTable">
-                        <thead>
-                            <tr>
-                                <th width="40" class="text-center">
-                                    <input type="checkbox" id="selectAll" onclick="toggleSelectAll()">
-                                </th>
-                                <th>Disciplina</th>
-                                <th>Precio Mensual</th>
-                                <th>Clase Suelta</th>
-                                <th>Inscripciones</th>
-                                <th>Ingreso Mensual</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for disciplina in disciplinas %}
-                            <tr data-disciplina-id="{{ disciplina.id }}" 
-                                data-activa="{% if disciplina.activa %}true{% else %}false{% endif %}">
-                                <td class="text-center">
-                                    <input type="checkbox" class="disciplina-checkbox" 
-                                           value="{{ disciplina.id }}">
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3">
-                                            <div class="disciplina-icon bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" 
-                                                 style="width: 40px; height: 40px;">
-                                                <i class="fas fa-fist-raised text-primary"></i>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <strong>{{ disciplina.get_nombre_display }}</strong>
-                                            {% if not disciplina.activa %}
-                                            <span class="badge bg-warning ms-2">Inactiva</span>
-                                            {% endif %}
-                                            <br>
-                                            <small class="text-muted">{{ disciplina.descripcion|truncatechars:50|default:"Sin descripción" }}</small>
+                <div class="row" id="disciplinasGrid">
+                    {% for disciplina in disciplinas %}
+                    <div class="col-xl-4 col-lg-6 col-md-6 mb-4" 
+                         data-disciplina-id="{{ disciplina.id }}" 
+                         data-activa="{% if disciplina.activa %}true{% else %}false{% endif %}">
+                        <div class="card h-100 disciplina-card">
+                            <div class="card-header bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input disciplina-checkbox" 
+                                               value="{{ disciplina.id }}">
+                                    </div>
+                                    <span class="badge {% if disciplina.activa %}bg-success{% else %}bg-warning{% endif %}">
+                                        {% if disciplina.activa %}Activa{% else %}Inactiva{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-start mb-3">
+                                    <div class="disciplina-icon bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                         style="width: 50px; height: 50px;">
+                                        <i class="fas fa-fist-raised text-primary fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">{{ disciplina.get_nombre_display }}</h5>
+                                        <p class="card-text text-muted small">{{ disciplina.descripcion|truncatechars:80|default:"Sin descripción" }}</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Precios -->
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <div class="text-center">
+                                            <div class="text-success fw-bold">${{ disciplina.precio_mensual }}</div>
+                                            <small class="text-muted">Mensual</small>
                                         </div>
                                     </div>
-                                </td>
-                                <td>
-                                    <strong class="text-success">${{ disciplina.precio_mensual }}</strong>
-                                    <br>
-                                    <small class="text-muted">Mensual</small>
-                                </td>
-                                <td>
-                                    <span class="badge bg-secondary">${{ disciplina.precio_clase_suelta }}</span>
-                                    <br>
-                                    <small class="text-muted">Por clase</small>
-                                </td>
-                                <td>
-                                    {% with inscripciones=disciplina.inscripcion_set.count %}
-                                    <div class="d-flex align-items-center">
-                                        <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                                            <div class="progress-bar {% if inscripciones > 0 %}bg-success{% else %}bg-secondary{% endif %}" 
-                                                 style="width: {{ inscripciones }}%"></div>
+                                    <div class="col-6">
+                                        <div class="text-center">
+                                            <div class="text-secondary fw-bold">${{ disciplina.precio_clase_suelta }}</div>
+                                            <small class="text-muted">Clase suelta</small>
                                         </div>
-                                        <span class="badge {% if inscripciones > 0 %}bg-success{% else %}bg-secondary{% endif %}">
-                                            {{ inscripciones }}
+                                    </div>
+                                </div>
+                                
+                                <!-- Horarios -->
+                                {% if disciplina.horarios.all %}
+                                <div class="mt-3">
+                                    <small class="text-muted d-block mb-1">Horarios activos:</small>
+                                    <div class="d-flex flex-wrap gap-1 mb-2">
+                                        {% for horario in disciplina.horarios.all|slice:":3" %}
+                                            {% if horario.activo %}
+                                            <span class="badge {% if horario.esta_lleno %}bg-danger{% else %}bg-primary{% endif %}" 
+                                                  title="{{ horario.get_dia_semana_display }} {{ horario.hora_inicio|time:'H:i' }}-{{ horario.hora_fin|time:'H:i' }} ({{ horario.inscripcion_set.count }}/{{ horario.capacidad_maxima }})">
+                                                {{ horario.get_dia_semana_display|slice:":3" }} {{ horario.hora_inicio|time:"H:i" }}
+                                            </span>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if disciplina.horarios.filter.activo.count > 3 %}
+                                        <span class="badge bg-secondary" title="Ver todos los horarios">
+                                            +{{ disciplina.horarios.filter.activo.count|add:"-3" }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-users me-1"></i>
+                                        {% with total_inscritos=0 %}
+                                        {% for horario in disciplina.horarios.all %}
+                                            {% with total_inscritos=total_inscritos|add:horario.inscripcion_set.count %}
+                                            {% endwith %}
+                                        {% endfor %}
+                                        {{ total_inscritos|default:0 }} inscritos
+                                        {% endwith %}
+                                    </small>
+                                </div>
+                                {% else %}
+                                <div class="mt-3">
+                                    <span class="badge bg-warning">Sin horarios definidos</span>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Inscripciones e Ingresos -->
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <small class="text-muted">Inscripciones:</small>
+                                        <span class="badge {% if disciplina.inscripcion_set.count > 0 %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {{ disciplina.inscripcion_set.count }}
                                         </span>
                                     </div>
-                                    {% endwith %}
-                                </td>
-                                <td>
-                                    {% with ingresos=disciplina.inscripcion_set.count|default:0|add:0|floatformat:2 %}
-                                    {% widthratio disciplina.precio_mensual 1 disciplina.inscripcion_set.count as total %}
-                                    <strong>${{ total|default:0 }}</strong>
-                                    <br>
-                                    <small class="text-muted">/ mes</small>
-                                    {% endwith %}
-                                </td>
-                                <td>
-                                    <div class="btn-group" role="group">
+                                    <div>
+                                        <small class="text-muted">Ingreso:</small>
+                                        {% widthratio disciplina.precio_mensual 1 disciplina.inscripcion_set.count as total %}
+                                        <span class="badge bg-info">${{ total|default:0 }}</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Botones de Acción -->
+                                <div class="d-flex justify-content-between">
+                                    <div class="btn-group">
                                         <a href="{% url 'disciplina_update' disciplina.id %}" 
                                            class="btn btn-sm btn-outline-secondary" title="Editar">
                                             <i class="fas fa-edit"></i>
@@ -233,15 +265,15 @@
                                             </ul>
                                         </div>
                                     </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
                 
                 <!-- Acciones en lote -->
-                <div class="card-footer bg-white border-top-0" id="accionesLote" style="display: none;">
+                <div class="card-footer bg-white border-top" id="accionesLote" style="display: none;">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <span id="seleccionadosCount">0</span> disciplinas seleccionadas
@@ -586,16 +618,16 @@
     // Búsqueda de disciplinas
     function buscarDisciplinas() {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        const rows = document.querySelectorAll('#disciplinasTable tbody tr');
+        const cards = document.querySelectorAll('.disciplina-card');
         
-        rows.forEach(row => {
-            const nombre = row.cells[1].textContent.toLowerCase();
-            const descripcion = row.cells[1].querySelector('small').textContent.toLowerCase();
+        cards.forEach(card => {
+            const nombre = card.querySelector('.card-title').textContent.toLowerCase();
+            const descripcion = card.querySelector('.card-text').textContent.toLowerCase();
             
             if (nombre.includes(searchTerm) || descripcion.includes(searchTerm)) {
-                row.style.display = '';
+                card.closest('.col-xl-4').style.display = '';
             } else {
-                row.style.display = 'none';
+                card.closest('.col-xl-4').style.display = 'none';
             }
         });
     }
@@ -603,47 +635,46 @@
     // Filtrar disciplinas activas/inactivas
     function filtrarActivas() {
         const mostrarInactivas = document.getElementById('mostrarInactivas').checked;
-        const rows = document.querySelectorAll('#disciplinasTable tbody tr');
+        const cards = document.querySelectorAll('.col-xl-4');
         
-        rows.forEach(row => {
-            const esActiva = row.getAttribute('data-activa') === 'true';
+        cards.forEach(card => {
+            const esActiva = card.getAttribute('data-activa') === 'true';
             
             if (!mostrarInactivas && !esActiva) {
-                row.style.display = 'none';
+                card.style.display = 'none';
             } else {
-                row.style.display = '';
+                card.style.display = '';
             }
         });
     }
 
-    // Ordenar tabla
+    // Ordenar tarjetas
     function ordenarPor(criterio) {
-        const table = document.getElementById('disciplinasTable');
-        const tbody = table.querySelector('tbody');
-        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const container = document.getElementById('disciplinasGrid');
+        const cards = Array.from(container.querySelectorAll('.col-xl-4'));
         
-        rows.sort((a, b) => {
+        cards.sort((a, b) => {
             let valorA, valorB;
             
             switch(criterio) {
                 case 'nombre':
-                    valorA = a.cells[1].querySelector('strong').textContent;
-                    valorB = b.cells[1].querySelector('strong').textContent;
+                    valorA = a.querySelector('.card-title').textContent;
+                    valorB = b.querySelector('.card-title').textContent;
                     return valorA.localeCompare(valorB);
                     
                 case 'precio':
-                    valorA = parseFloat(a.cells[2].querySelector('strong').textContent.replace('$', '').replace(/\./g, '').replace(',', '.'));
-                    valorB = parseFloat(b.cells[2].querySelector('strong').textContent.replace('$', '').replace(/\./g, '').replace(',', '.'));
+                    valorA = parseFloat(a.querySelector('.text-success').textContent.replace('$', '').replace(/\./g, '').replace(',', '.'));
+                    valorB = parseFloat(b.querySelector('.text-success').textContent.replace('$', '').replace(/\./g, '').replace(',', '.'));
                     return valorA - valorB;
                     
                 case 'inscripciones':
-                    valorA = parseInt(a.cells[4].querySelector('.badge').textContent);
-                    valorB = parseInt(b.cells[4].querySelector('.badge').textContent);
+                    valorA = parseInt(a.querySelector('.badge.bg-success, .badge.bg-secondary').textContent);
+                    valorB = parseInt(b.querySelector('.badge.bg-success, .badge.bg-secondary').textContent);
                     return valorB - valorA;
                     
                 case 'ingresos':
-                    valorA = parseFloat(a.cells[5].querySelector('strong').textContent.replace('$', '').replace(/\./g, '').replace(',', '.'));
-                    valorB = parseFloat(b.cells[5].querySelector('strong').textContent.replace('$', '').replace(/\./g, '').replace(',', '.'));
+                    valorA = parseFloat(a.querySelector('.badge.bg-info').textContent.replace('$', '').replace(/\./g, '').replace(',', '.'));
+                    valorB = parseFloat(b.querySelector('.badge.bg-info').textContent.replace('$', '').replace(/\./g, '').replace(',', '.'));
                     return valorB - valorA;
                     
                 default:
@@ -651,11 +682,11 @@
             }
         });
         
-        // Reordenar filas
-        rows.forEach(row => tbody.appendChild(row));
+        // Reordenar tarjetas
+        cards.forEach(card => container.appendChild(card));
     }
 
-    // Seleccionar/deseleccionar todos
+    // Seleccionar/deseleccionar todas las tarjetas
     function toggleSelectAll() {
         const selectAll = document.getElementById('selectAll');
         const checkboxes = document.querySelectorAll('.disciplina-checkbox');
@@ -674,8 +705,12 @@
         
         if (checkbox.checked) {
             disciplinasSeleccionadas.add(disciplinaId);
+            checkbox.closest('.card').style.borderColor = '#0d6efd';
+            checkbox.closest('.card').style.boxShadow = '0 0 0 0.2rem rgba(13, 110, 253, 0.25)';
         } else {
             disciplinasSeleccionadas.delete(disciplinaId);
+            checkbox.closest('.card').style.borderColor = '';
+            checkbox.closest('.card').style.boxShadow = '';
             document.getElementById('selectAll').checked = false;
         }
         
@@ -699,8 +734,7 @@
     // Activar/desactivar disciplinas individualmente
     function activarDisciplina(id) {
         if (confirm('¿Activar esta disciplina?')) {
-            // Aquí iría la llamada AJAX al servidor
-            fetch(`/api/disciplinas/${id}/activar/`, {
+            fetch(`/disciplinas/api/${id}/activar/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
@@ -718,13 +752,13 @@
 
     function desactivarDisciplina(id) {
         if (confirm('¿Desactivar esta disciplina? Los alumnos no podrán inscribirse.')) {
-            // Aquí iría la llamada AJAX al servidor
-            fetch(`/api/disciplinas/${id}/desactivar/`, {
+            fetch(`/disciplinas/api/${id}/activar/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({ accion: 'desactivar' })
             })
             .then(response => response.json())
             .then(data => {
@@ -740,14 +774,16 @@
         if (disciplinasSeleccionadas.size === 0) return;
         
         if (confirm(`¿Activar ${disciplinasSeleccionadas.size} disciplinas seleccionadas?`)) {
-            // Enviar petición AJAX
-            fetch('/api/disciplinas/activar-lote/', {
+            fetch('/disciplinas/api/activar-lote/', {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ ids: Array.from(disciplinasSeleccionadas) })
+                body: JSON.stringify({ 
+                    ids: Array.from(disciplinasSeleccionadas),
+                    accion: 'activar'
+                })
             })
             .then(response => response.json())
             .then(data => {
@@ -762,14 +798,16 @@
         if (disciplinasSeleccionadas.size === 0) return;
         
         if (confirm(`¿Desactivar ${disciplinasSeleccionadas.size} disciplinas seleccionadas?`)) {
-            // Enviar petición AJAX
-            fetch('/api/disciplinas/desactivar-lote/', {
+            fetch('/disciplinas/api/activar-lote/', {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ ids: Array.from(disciplinasSeleccionadas) })
+                body: JSON.stringify({ 
+                    ids: Array.from(disciplinasSeleccionadas),
+                    accion: 'desactivar'
+                })
             })
             .then(response => response.json())
             .then(data => {
@@ -800,7 +838,7 @@
         }
         
         if (confirm(`¿Cambiar precio de ${disciplinasSeleccionadas.size} disciplinas?`)) {
-            fetch('/api/disciplinas/cambiar-precio-lote/', {
+            fetch('/disciplinas/api/cambiar-precio-lote/', {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
@@ -824,7 +862,6 @@
     // Copiar precio al portapapeles
     function copiarPrecio(precio) {
         navigator.clipboard.writeText(precio).then(() => {
-            // Mostrar notificación temporal
             const alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-success position-fixed top-0 end-0 m-3';
             alertDiv.style.zIndex = '1050';
@@ -835,26 +872,23 @@
         });
     }
 
-    // Generar código QR (placeholder)
+    // Generar código QR
     function generarCodigoQR(disciplinaId) {
-        // Esta función se implementaría con una librería QR
         alert('Función para generar QR de disciplina ' + disciplinaId);
     }
 
     // Exportar datos
     function exportarDisciplinas() {
-        // Aquí iría la lógica para exportar a Excel o PDF
         const datos = [];
-        document.querySelectorAll('#disciplinasTable tbody tr').forEach(row => {
-            const nombre = row.cells[1].querySelector('strong').textContent;
-            const precio = row.cells[2].querySelector('strong').textContent;
-            const inscripciones = row.cells[4].querySelector('.badge').textContent;
-            const ingresos = row.cells[5].querySelector('strong').textContent;
+        document.querySelectorAll('.disciplina-card').forEach(card => {
+            const nombre = card.querySelector('.card-title').textContent;
+            const precio = card.querySelector('.text-success').textContent;
+            const inscripciones = card.querySelector('.badge.bg-success, .badge.bg-secondary').textContent;
+            const ingresos = card.querySelector('.badge.bg-info').textContent;
             
             datos.push({ nombre, precio, inscripciones, ingresos });
         });
         
-        // Simular descarga
         const contenido = 'Datos de Disciplinas\n\n' + 
                          datos.map(d => `${d.nombre}: ${d.precio} - ${d.inscripciones} inscripciones - ${d.ingresos} ingresos`).join('\n');
         
@@ -883,7 +917,6 @@
             return;
         }
         
-        // Formatear precio antes de enviar
         this.querySelector('input[name="precio_mensual"]').value = precioMensual.replace('$', '').replace(/\./g, '');
         this.querySelector('input[name="precio_clase_suelta"]').value = 
             this.querySelector('input[name="precio_clase_suelta"]').value.replace('$', '').replace(/\./g, '');
@@ -903,6 +936,41 @@
                 actualizarSeleccion(this);
             });
         });
+        
+        // Efecto hover
+        document.querySelectorAll('.disciplina-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                if (!this.style.borderColor || this.style.borderColor === 'rgb(222, 226, 230)') {
+                    this.style.transform = 'translateY(-5px)';
+                    this.style.transition = 'transform 0.2s';
+                }
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                if (!this.style.borderColor || this.style.borderColor === 'rgb(222, 226, 230)') {
+                    this.style.transform = '';
+                }
+            });
+        });
     });
 </script>
+
+<style>
+    .disciplina-card {
+        transition: all 0.3s ease;
+        border: 1px solid #dee2e6;
+    }
+    
+    .disciplina-card:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .disciplina-icon {
+        transition: all 0.3s ease;
+    }
+    
+    .disciplina-card:hover .disciplina-icon {
+        background-color: rgba(13, 110, 253, 0.15) !important;
+    }
+</style>
 {% endblock %}

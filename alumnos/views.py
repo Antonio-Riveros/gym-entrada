@@ -9,7 +9,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from datetime import date, timedelta, datetime
 import json
-
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.views import View
 from .models import Alumno
 from disciplinas.models import Disciplina, Horario, Combo
 from pagos.models import Inscripcion, Pago
@@ -240,7 +244,7 @@ class AlumnoListView(LoginRequiredMixin, ListView):
         elif status == 'inactivo':
             queryset = queryset.filter(activo=False)
         
-        return queryset.select_related().prefetch_related('inscripciones')
+        return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -265,6 +269,10 @@ class AlumnoListView(LoginRequiredMixin, ListView):
         # Total active subscriptions
         total_inscripciones = Inscripcion.objects.filter(activa=True).count()
         
+        # Añadir disciplinas para el modal
+        from disciplinas.models import Disciplina
+        disciplinas = Disciplina.objects.all().order_by('nombre')
+        
         context.update({
             'total_alumnos': total_alumnos,
             'alumnos_activos': alumnos_activos,
@@ -272,6 +280,8 @@ class AlumnoListView(LoginRequiredMixin, ListView):
             'nuevos_mes': nuevos_mes,
             'con_deuda': con_deuda,
             'total_inscripciones': total_inscripciones,
+            'disciplinas': disciplinas,  # ¡IMPORTANTE! Para el modal
+            'today': date.today(),  # Para calcular edad
         })
         
         return context
@@ -471,3 +481,187 @@ def obtener_info_disciplina(request, pk):
         })
     except Disciplina.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Disciplina no encontrada'})
+
+
+# API Views
+@csrf_exempt
+def activar_alumno_api(request, pk):
+    """API para activar un alumno"""
+    if request.method == 'POST':
+        try:
+            alumno = Alumno.objects.get(id=pk)
+            alumno.activo = True
+            alumno.save()
+            return JsonResponse({'success': True, 'message': f'Alumno {alumno} activado exitosamente.'})
+        except Alumno.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Alumno no encontrado'})
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@csrf_exempt
+def desactivar_alumno_api(request, pk):
+    """API para desactivar un alumno"""
+    if request.method == 'POST':
+        try:
+            alumno = Alumno.objects.get(id=pk)
+            alumno.activo = False
+            alumno.save()
+            return JsonResponse({'success': True, 'message': f'Alumno {alumno} desactivado exitosamente.'})
+        except Alumno.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Alumno no encontrado'})
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@csrf_exempt
+def eliminar_alumno_api(request, pk):
+    """API para eliminar un alumno"""
+    if request.method == 'POST':
+        try:
+            alumno = Alumno.objects.get(id=pk)
+            
+            # Si tiene inscripciones activas, desactivar en lugar de eliminar
+            if Inscripcion.objects.filter(alumno=alumno, activa=True).exists():
+                alumno.activo = False
+                alumno.save()
+                mensaje = f'Alumno {alumno} desactivado (tenía inscripciones activas)'
+            else:
+                alumno_nombre = str(alumno)
+                alumno.delete()
+                mensaje = f'Alumno {alumno_nombre} eliminado exitosamente.'
+            
+            return JsonResponse({'success': True, 'message': mensaje})
+        except Alumno.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Alumno no encontrado'})
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@csrf_exempt
+def activar_alumnos_lote_api(request):
+    """API para activar alumnos en lote"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            ids = data.get('ids', [])
+            
+            alumnos = Alumno.objects.filter(id__in=ids)
+            count = alumnos.count()
+            
+            alumnos.update(activo=True)
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'{count} alumnos reactivados exitosamente.'
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@csrf_exempt
+def desactivar_alumnos_lote_api(request):
+    """API para desactivar alumnos en lote"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            ids = data.get('ids', [])
+            
+            alumnos = Alumno.objects.filter(id__in=ids)
+            count = alumnos.count()
+            
+            alumnos.update(activo=False)
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'{count} alumnos desactivados exitosamente.'
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@csrf_exempt
+def eliminar_alumnos_lote_api(request):
+    """API para eliminar alumnos en lote"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            ids = data.get('ids', [])
+            
+            alumnos = Alumno.objects.filter(id__in=ids)
+            eliminados = 0
+            desactivados = 0
+            
+            for alumno in alumnos:
+                # Si tiene inscripciones activas, desactivar
+                if Inscripcion.objects.filter(alumno=alumno, activa=True).exists():
+                    alumno.activo = False
+                    alumno.save()
+                    desactivados += 1
+                else:
+                    alumno.delete()
+                    eliminados += 1
+            
+            mensaje = f'{eliminados} alumnos eliminados y {desactivados} desactivados (tenían inscripciones activas).'
+            return JsonResponse({'success': True, 'message': mensaje})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@csrf_exempt
+def asignar_disciplina_lote_api(request):
+    """API para asignar disciplina a alumnos en lote"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            ids = data.get('ids', [])
+            disciplina_id = data.get('disciplina_id')
+            horario_id = data.get('horario_id')
+            registrar_pago = data.get('registrar_pago', False)
+            
+            # Validar datos
+            if not disciplina_id:
+                return JsonResponse({'success': False, 'error': 'Se requiere una disciplina'})
+            
+            disciplina = Disciplina.objects.get(id=disciplina_id)
+            horario = Horario.objects.get(id=horario_id) if horario_id else None
+            
+            # Asignar disciplina a cada alumno
+            asignados = 0
+            for alumno_id in ids:
+                try:
+                    alumno = Alumno.objects.get(id=alumno_id)
+                    
+                    # Verificar si ya está inscrito en esta disciplina
+                    if not Inscripcion.objects.filter(alumno=alumno, disciplina=disciplina, activa=True).exists():
+                        # Crear inscripción
+                        inscripcion = Inscripcion.objects.create(
+                            alumno=alumno,
+                            disciplina=disciplina,
+                            horario=horario
+                        )
+                        
+                        # Registrar pago si se solicitó
+                        if registrar_pago:
+                            Pago.objects.create(
+                                alumno=alumno,
+                                monto=disciplina.precio_mensual,
+                                fecha_vencimiento=date.today() + timedelta(days=30),
+                                metodo_pago='EFECTIVO',
+                                pagado=True,
+                                observaciones=f"Inscripción a {disciplina.get_nombre_display()}",
+                                relacion_inscripcion=inscripcion
+                            )
+                        
+                        asignados += 1
+                        
+                except Alumno.DoesNotExist:
+                    continue
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'Disciplina asignada a {asignados} alumnos exitosamente.'
+            })
+            
+        except Disciplina.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Disciplina no encontrada'})
+        except Horario.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Horario no encontrado'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})

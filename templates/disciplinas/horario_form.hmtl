@@ -1,0 +1,293 @@
+<!-- Crea un nuevo archivo templates/disciplinas/horario_form.html -->
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Gestión de Horarios - Sistema Gimnasio MMA{% endblock %}
+
+{% block page_title %}Gestión de Horarios{% endblock %}
+{% block page_subtitle %}{% if form.instance.id %}Editar Horario{% else %}Nuevo Horario{% endif %}{% endblock %}
+
+{% block header_buttons %}
+<a href="{% url 'disciplina_list' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Volver a Disciplinas
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>
+                    Horario para {{ disciplina.get_nombre_display }}
+                </h5>
+            </div>
+            
+            <form method="post" id="horarioForm">
+                {% csrf_token %}
+                
+                <div class="card-body">
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Día de la semana -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Día de la semana *</label>
+                            <select name="dia_semana" class="form-control form-control-custom" required>
+                                <option value="">Selecciona un día...</option>
+                                {% for dia_code, dia_name in dias_semana %}
+                                <option value="{{ dia_code }}" {% if form.dia_semana.value == dia_code %}selected{% endif %}>
+                                    {{ dia_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Estado</label>
+                            <div class="form-check form-switch mt-2">
+                                <input type="checkbox" name="activo" id="activo" 
+                                       class="form-check-input" {% if form.instance.activo or not form.instance.id %}checked{% endif %}>
+                                <label class="form-check-label" for="activo">
+                                    Horario activo
+                                </label>
+                            </div>
+                            <small class="text-muted">Desactívalo para pausar temporalmente este horario</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Horas -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Hora de inicio *</label>
+                            <input type="time" name="hora_inicio" class="form-control form-control-custom" 
+                                   value="{{ form.hora_inicio.value|default:'08:00' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Hora de fin *</label>
+                            <input type="time" name="hora_fin" class="form-control form-control-custom" 
+                                   value="{{ form.hora_fin.value|default:'09:00' }}" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Capacidad -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Capacidad máxima *</label>
+                            <input type="number" name="capacidad_maxima" class="form-control form-control-custom" 
+                                   min="1" max="50" value="{{ form.capacidad_maxima.value|default:20 }}" required>
+                            <small class="text-muted">Número máximo de alumnos en este horario</small>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 mt-4">
+                                <h6 class="border-bottom pb-2 mb-2">Información de la Disciplina</h6>
+                                <p class="mb-1"><strong>Nombre:</strong> {{ disciplina.get_nombre_display }}</p>
+                                <p class="mb-1"><strong>Precio mensual:</strong> ${{ disciplina.precio_mensual }}</p>
+                                <p class="mb-0"><strong>Horarios actuales:</strong> {{ disciplina.horarios.count }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Previsualización -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="border rounded p-3 bg-light">
+                                <h6 class="border-bottom pb-2 mb-2">Previsualización del Horario</h6>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge bg-primary" id="previewDia">Lunes</span>
+                                        <span class="badge bg-success ms-2" id="previewHora">08:00 - 09:00</span>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-info" id="previewCapacidad">20 alumnos</span>
+                                        <span class="badge bg-success ms-2" id="previewEstado">Activo</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Advertencia si hay alumnos inscritos -->
+                    {% if form.instance.id and form.instance.inscripcion_set.count > 0 %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Atención:</strong> Este horario tiene {{ form.instance.inscripcion_set.count }} alumnos inscritos.
+                        Si lo desactivas, los alumnos no podrán seleccionarlo para nuevas inscripciones.
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between">
+                        {% if form.instance.id %}
+                        <a href="{% url 'admin:disciplinas_horario_delete' form.instance.id %}" 
+                           class="btn btn-danger"
+                           onclick="return confirm('¿Está seguro que desea eliminar este horario? Esto afectará a los alumnos inscritos.')">
+                            <i class="fas fa-trash me-2"></i>Eliminar Horario
+                        </a>
+                        {% else %}
+                        <a href="{% url 'disciplina_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        {% endif %}
+                        <button type="submit" class="btn btn-primary-custom">
+                            <i class="fas fa-save me-2"></i>
+                            {% if form.instance.id %}Actualizar Horario{% else %}Crear Horario{% endif %}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Lista de horarios existentes -->
+        {% if disciplina.horarios.all %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Horarios Existentes de {{ disciplina.get_nombre_display }}</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Día</th>
+                                <th>Horario</th>
+                                <th>Capacidad</th>
+                                <th>Inscritos</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for horario in disciplina.horarios.all %}
+                            <tr>
+                                <td>{{ horario.get_dia_semana_display }}</td>
+                                <td>{{ horario.hora_inicio|time:"H:i" }} - {{ horario.hora_fin|time:"H:i" }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                            <div class="progress-bar {% if horario.esta_lleno %}bg-danger{% else %}bg-success{% endif %}" 
+                                                 style="width: {% widthratio horario.inscripcion_set.count horario.capacidad_maxima 100 %}%">
+                                            </div>
+                                        </div>
+                                        <span class="badge {% if horario.esta_lleno %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ horario.inscripcion_set.count }}/{{ horario.capacidad_maxima }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>{{ horario.inscripcion_set.count }}</td>
+                                <td>
+                                    {% if horario.activo %}
+                                    <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'admin:disciplinas_horario_change' horario.id %}" 
+                                           class="btn btn-outline-secondary" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'horario_detail' horario.id %}" 
+                                           class="btn btn-outline-primary" title="Ver detalles">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Actualizar previsualización en tiempo real
+    function actualizarPrevisualizacion() {
+        const diaSelect = document.querySelector('select[name="dia_semana"]');
+        const horaInicio = document.querySelector('input[name="hora_inicio"]');
+        const horaFin = document.querySelector('input[name="hora_fin"]');
+        const capacidad = document.querySelector('input[name="capacidad_maxima"]');
+        const activoCheck = document.querySelector('input[name="activo"]');
+        
+        // Actualizar día
+        if (diaSelect.value) {
+            const dias = {
+                'LUN': 'Lunes', 'MAR': 'Martes', 'MIE': 'Miércoles',
+                'JUE': 'Jueves', 'VIE': 'Viernes', 'SAB': 'Sábado', 'DOM': 'Domingo'
+            };
+            document.getElementById('previewDia').textContent = dias[diaSelect.value];
+        }
+        
+        // Actualizar hora
+        if (horaInicio.value && horaFin.value) {
+            document.getElementById('previewHora').textContent = 
+                `${horaInicio.value} - ${horaFin.value}`;
+        }
+        
+        // Actualizar capacidad
+        if (capacidad.value) {
+            document.getElementById('previewCapacidad').textContent = 
+                `${capacidad.value} alumnos`;
+        }
+        
+        // Actualizar estado
+        document.getElementById('previewEstado').textContent = 
+            activoCheck.checked ? 'Activo' : 'Inactivo';
+        document.getElementById('previewEstado').className = 
+            activoCheck.checked ? 'badge bg-success ms-2' : 'badge bg-secondary ms-2';
+    }
+    
+    // Escuchar cambios en los campos
+    document.querySelectorAll('select[name="dia_semana"], input[name="hora_inicio"], input[name="hora_fin"], input[name="capacidad_maxima"], input[name="activo"]')
+        .forEach(element => {
+            element.addEventListener('change', actualizarPrevisualizacion);
+            element.addEventListener('input', actualizarPrevisualizacion);
+        });
+    
+    // Validar formulario
+    document.getElementById('horarioForm').addEventListener('submit', function(e) {
+        const horaInicio = document.querySelector('input[name="hora_inicio"]').value;
+        const horaFin = document.querySelector('input[name="hora_fin"]').value;
+        const capacidad = document.querySelector('input[name="capacidad_maxima"]').value;
+        const dia = document.querySelector('select[name="dia_semana"]').value;
+        
+        let errores = [];
+        
+        if (!dia) {
+            errores.push('Selecciona un día de la semana');
+        }
+        
+        if (!horaInicio || !horaFin) {
+            errores.push('Completa tanto la hora de inicio como la de fin');
+        } else if (horaInicio >= horaFin) {
+            errores.push('La hora de inicio debe ser anterior a la hora de fin');
+        }
+        
+        if (!capacidad || capacidad < 1 || capacidad > 50) {
+            errores.push('La capacidad debe estar entre 1 y 50 alumnos');
+        }
+        
+        if (errores.length > 0) {
+            e.preventDefault();
+            alert('Por favor corrige los siguientes errores:\n\n' + errores.join('\n'));
+        }
+    });
+    
+    // Inicializar previsualización
+    document.addEventListener('DOMContentLoaded', function() {
+        actualizarPrevisualizacion();
+    });
+</script>
+{% endblock %}

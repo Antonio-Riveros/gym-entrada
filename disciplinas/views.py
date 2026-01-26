@@ -1,25 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, View
-from django.urls import reverse_lazy
-from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import JsonResponse
-from django.db.models import Count, Sum, Q
-from django.utils import timezone
-from django.forms import modelformset_factory
-from datetime import date
-import json
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from django.views import View
-import json
-from .models import Disciplina, Horario, Combo
-from alumnos.models import Alumno
-from pagos.models import Inscripcion, Pago
-from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import ListView, CreateView, UpdateView, DetailView, View
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
@@ -28,17 +9,14 @@ from django.utils import timezone
 from django.forms import modelformset_factory
 from datetime import date, datetime
 import json
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from django.views import View
-import json
+
 from .models import Disciplina, Horario, Combo
 from alumnos.models import Alumno
 from pagos.models import Inscripcion, Pago
 from .forms import DisciplinaForm, HorarioFormSet, ComboForm
-from datetime import date, timedelta
-
+from .forms import DisciplinaForm, HorarioFormSet, ComboForm
 
 
 
@@ -604,28 +582,34 @@ def obtener_horarios_disciplina(request):
     """Obtiene los horarios disponibles para una disciplina específica"""
     if request.method == 'GET' and 'disciplina_id' in request.GET:
         disciplina_id = request.GET.get('disciplina_id')
-        alumno_id = request.GET.get('alumno_id')  # Nuevo: para verificar conflictos
+        alumno_id = request.GET.get('alumno_id')
         
         try:
             disciplina = Disciplina.objects.get(id=disciplina_id)
-            horarios = Horario.objects.filter(disciplina=disciplina).order_by('dia_semana', 'hora_inicio')
+            # Solo horarios activos
+            horarios = Horario.objects.filter(
+                disciplina=disciplina, 
+                activo=True
+            ).order_by('dia_semana', 'hora_inicio')
             
             horarios_data = []
             for horario in horarios:
-                # Contar inscritos en este horario
-                inscritos_count = Inscripcion.objects.filter(horario=horario, activa=True).count()
-                disponible = horario.capacidad_maxima - inscritos_count
+                # Contar inscritos activos
+                inscritos_count = Inscripcion.objects.filter(
+                    horario=horario, 
+                    activa=True
+                ).count()
                 
-                # Verificar si el alumno tiene conflictos con este horario
+                disponible = horario.capacidad_maxima - inscritos_count
+                lleno = disponible <= 0
+                
+                # Verificar conflictos si hay alumno_id
                 conflicto = False
-                mensaje_conflicto = ""
                 if alumno_id:
                     try:
                         alumno = Alumno.objects.get(id=alumno_id)
                         tiene_conflicto, conflictos = verificar_conflicto_horario(alumno, horario)
-                        if tiene_conflicto:
-                            conflicto = True
-                            mensaje_conflicto = " (CONFLICTO DE HORARIO)"
+                        conflicto = tiene_conflicto
                     except Alumno.DoesNotExist:
                         pass
                 
@@ -637,9 +621,9 @@ def obtener_horarios_disciplina(request):
                     'capacidad': horario.capacidad_maxima,
                     'inscritos': inscritos_count,
                     'disponible': disponible,
-                    'lleno': disponible <= 0,
+                    'lleno': lleno,
                     'conflicto': conflicto,
-                    'mensaje_conflicto': mensaje_conflicto
+                    'mensaje_conflicto': ' (CONFLICTO DE HORARIO)' if conflicto else ''
                 })
             
             return JsonResponse({
@@ -653,6 +637,7 @@ def obtener_horarios_disciplina(request):
             return JsonResponse({'success': False, 'error': 'Disciplina no encontrada'})
     
     return JsonResponse({'success': False, 'error': 'Parámetros inválidos'})
+
 
 def verificar_conflicto_horario(alumno, nuevo_horario):
     """
@@ -692,3 +677,48 @@ def verificar_conflicto_horario(alumno, nuevo_horario):
             })
     
     return len(conflictos) > 0, conflictos
+
+
+
+
+class HorarioCreateView(LoginRequiredMixin, CreateView):
+    model = Horario
+    template_name = 'disciplinas/horario_form.html'
+    fields = ['dia_semana', 'hora_inicio', 'hora_fin', 'capacidad_maxima', 'activo']
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        disciplina_id = self.kwargs.get('disciplina_id')
+        disciplina = get_object_or_404(Disciplina, id=disciplina_id)
+        context['disciplina'] = disciplina
+        context['dias_semana'] = Disciplina.DIAS_SEMANA
+        return context
+    
+    def form_valid(self, form):
+        disciplina_id = self.kwargs.get('disciplina_id')
+        disciplina = get_object_or_404(Disciplina, id=disciplina_id)
+        form.instance.disciplina = disciplina
+        messages.success(self.request, 'Horario creado exitosamente.')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        disciplina_id = self.kwargs.get('disciplina_id')
+        return reverse('disciplina_update', kwargs={'pk': disciplina_id})
+
+class HorarioUpdateView(LoginRequiredMixin, UpdateView):
+    model = Horario
+    template_name = 'disciplinas/horario_form.html'
+    fields = ['dia_semana', 'hora_inicio', 'hora_fin', 'capacidad_maxima', 'activo']
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['disciplina'] = self.object.disciplina
+        context['dias_semana'] = Disciplina.DIAS_SEMANA
+        return context
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Horario actualizado exitosamente.')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse('disciplina_update', kwargs={'pk': self.object.disciplina.id})
