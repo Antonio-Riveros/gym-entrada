@@ -13,9 +13,10 @@ class Alumno(models.Model):
     def foto_path(instance, filename):
         import os
         name, ext = os.path.splitext(filename)
-        return f'alumnos/{instance.nombre}_{instance.apellido}_{instance.id}{ext}'
+        return f'alumnos/{instance.nombre}_{instance.apellido}{ext}'
     
-    foto = models.ImageField(upload_to=foto_path, blank=True, null=True)
+    # 👇 CAMBIO CLAVE
+    foto = models.FileField(upload_to=foto_path, blank=True, null=True)
     
     def __str__(self):
         return f"{self.apellido}, {self.nombre}"
