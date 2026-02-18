@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ combo.nombre }} - Sistema Gimnasio MMA{% endblock %}
+
+{% block page_title %}Detalle del Combo{% endblock %}
+{% block page_subtitle %}{{ combo.nombre }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'combo_list' %}">Combos</a></li>
+<li class="breadcrumb-item active">{{ combo.nombre }}</li>
+{% endblock %}
+
+{% block header_buttons %}
+<a href="{% url 'combo_update' combo.id %}" class="btn btn-custom-primary">
+    <i class="fas fa-edit me-2"></i>Editar Combo
+</a>
+<a href="{% url 'combo_list' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+
+    <!-- Columna izquierda: Info del combo -->
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                     style="width:100px;height:100px;background:linear-gradient(135deg,#2c3e50,#3498db);">
+                    <i class="fas fa-layer-group fa-3x text-white"></i>
+                </div>
+                <h4 class="mb-1">{{ combo.nombre }}</h4>
+                <p class="text-muted mb-3">{{ combo.descripcion|default:"Sin descripción" }}</p>
+
+                {% if combo.activo %}
+                <span class="badge-status badge-active">Activo</span>
+                {% else %}
+                <span class="badge-status badge-inactive">Inactivo</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Precio -->
+        <div class="card mb-4">
+            <div class="card-header"><h6 class="mb-0">Precio</h6></div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="stat-label">Precio Combo</div>
+                    <div class="stat-value text-success">${{ combo.precio_combo }}</div>
+                </div>
+                {% if precio_normal %}
+                <div class="text-center mb-3">
+                    <div class="stat-label">Precio Normal</div>
+                    <div class="text-muted text-decoration-line-through fs-5">${{ precio_normal }}</div>
+                </div>
+                <div class="text-center mb-3">
+                    <div class="stat-label">Ahorro</div>
+                    <div class="stat-value text-primary">${{ ahorro }}</div>
+                </div>
+                {% endif %}
+                {% if porcentaje_descuento %}
+                <div class="text-center">
+                    <span class="badge bg-success fs-6">{{ porcentaje_descuento|floatformat:0 }}% de descuento</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="card mb-4">
+            <div class="card-header"><h6 class="mb-0">Estadísticas</h6></div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Disciplinas incluidas</span>
+                    <strong>{{ combo.disciplinas.count }}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Alumnos con este combo</span>
+                    <strong>{{ alumnos_con_combo }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna derecha: Disciplinas incluidas -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-dumbbell me-2"></i>Disciplinas Incluidas</h6>
+            </div>
+            <div class="card-body">
+                {% if combo.disciplinas.all %}
+                <div class="row">
+                    {% for disciplina in combo.disciplinas.all %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card border h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">{{ disciplina.get_nombre_display }}</h6>
+                                        <small class="text-muted">{{ disciplina.descripcion|default:""|truncatechars:60 }}</small>
+                                    </div>
+                                    {% if disciplina.activa %}
+                                    <span class="badge bg-success ms-2">Activa</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary ms-2">Inactiva</span>
+                                    {% endif %}
+                                </div>
+                                <hr class="my-2">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">Precio individual</small>
+                                    <strong class="text-muted text-decoration-line-through">${{ disciplina.precio_mensual }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-circle fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">Este combo no tiene disciplinas asignadas.</p>
+                    <a href="{% url 'combo_update' combo.id %}" class="btn btn-custom-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Agregar Disciplinas
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Inscribir alumno en este combo -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-user-plus me-2"></i>Inscribir Alumno en este Combo</h6>
+            </div>
+            <div class="card-body text-center py-4">
+                <p class="text-muted mb-3">
+                    Podés inscribir a un alumno directamente en todas las disciplinas de este combo.
+                </p>
+                <a href="{% url 'inscripcion_rapida' %}?combo={{ combo.id }}" class="btn btn-custom-primary">
+                    <i class="fas fa-user-plus me-2"></i>Ir a Inscripción Rápida
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

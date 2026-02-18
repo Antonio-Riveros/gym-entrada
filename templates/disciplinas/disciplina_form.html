@@ -16,157 +16,120 @@
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <div class="card">
-            <form method="post" id="disciplinaForm" novalidate>
+            <form method="post" id="disciplinaForm">
                 {% csrf_token %}
-                
+
                 <div class="card-header">
                     <h5 class="mb-0">Datos de la Disciplina</h5>
                 </div>
-                
+
                 <div class="card-body">
-                    {% if form.non_field_errors %}
-                    <div class="alert alert-danger alert-custom">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-exclamation-triangle me-3"></i>
-                            <div>
-                                {% for error in form.non_field_errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                        </div>
+
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <strong>Por favor corregí los siguientes errores:</strong>
+                        {{ form.errors }}
                     </div>
                     {% endif %}
-                    
+
                     <!-- Nombre de la Disciplina -->
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">{{ form.nombre.label }} *</label>
                             {{ form.nombre|add_class:"form-control form-control-custom" }}
                             {% if form.nombre.errors %}
-                            <div class="text-danger small mt-1">
-                                {{ form.nombre.errors }}
-                            </div>
+                            <div class="text-danger small mt-1">{{ form.nombre.errors }}</div>
                             {% endif %}
-                            <small class="text-muted d-block mt-1">
-                                Selecciona el nombre oficial de la disciplina
-                            </small>
+                            <small class="text-muted d-block mt-1">Selecciona el nombre oficial de la disciplina</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">ID de la Disciplina</label>
-                            <input type="text" class="form-control form-control-custom" 
-                                   value="{% if form.instance.id %}DSC-{{ form.instance.id|stringformat:"04d" }}{% else %}Nueva disciplina{% endif %}" 
+                            <input type="text" class="form-control form-control-custom"
+                                   value="{% if form.instance.id %}DSC-{{ form.instance.id|stringformat:"04d" }}{% else %}Nueva disciplina{% endif %}"
                                    disabled>
-                            <small class="text-muted d-block mt-1">
-                                Identificador único del sistema
-                            </small>
+                            <small class="text-muted d-block mt-1">Identificador único del sistema</small>
                         </div>
                     </div>
-                    
+
                     <!-- Descripción -->
                     <div class="row mb-4">
                         <div class="col-12">
                             <label class="form-label fw-bold">{{ form.descripcion.label }}</label>
                             {{ form.descripcion|add_class:"form-control form-control-custom"|attr:"rows:4"|attr:"placeholder:Describe la disciplina, sus beneficios, requisitos, etc." }}
                             {% if form.descripcion.errors %}
-                            <div class="text-danger small mt-1">
-                                {{ form.descripcion.errors }}
-                            </div>
+                            <div class="text-danger small mt-1">{{ form.descripcion.errors }}</div>
                             {% endif %}
                             <div class="d-flex justify-content-between mt-2">
-                                <small class="text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Esta descripción se mostrará a los alumnos
-                                </small>
+                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Esta descripción se mostrará a los alumnos</small>
                                 <small id="descCounter" class="text-muted">0/500 caracteres</small>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Precios -->
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <div class="border rounded p-4">
                                 <h6 class="border-bottom pb-2 mb-3">
-                                    <i class="fas fa-money-bill-wave me-2 text-success"></i>
-                                    Precios Mensuales
+                                    <i class="fas fa-money-bill-wave me-2 text-success"></i>Precios Mensuales
                                 </h6>
-                                
+
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">{{ form.precio_mensual.label }} *</label>
                                     <div class="input-group">
                                         <span class="input-group-text">$</span>
-                                        {{ form.precio_mensual|add_class:"form-control form-control-custom text-end"|attr:"placeholder:0.00" }}
+                                        {{ form.precio_mensual|add_class:"form-control form-control-custom text-end"|attr:"placeholder:0" }}
                                     </div>
                                     {% if form.precio_mensual.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.precio_mensual.errors }}
-                                    </div>
+                                    <div class="text-danger small mt-1">{{ form.precio_mensual.errors }}</div>
                                     {% endif %}
-                                    <small class="text-muted d-block mt-1">
-                                        Precio por mes de acceso ilimitado
-                                    </small>
+                                    <small class="text-muted d-block mt-1">Precio por mes de acceso ilimitado</small>
                                 </div>
-                                
+
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">{{ form.precio_clase_suelta.label }} *</label>
                                     <div class="input-group">
                                         <span class="input-group-text">$</span>
-                                        {{ form.precio_clase_suelta|add_class:"form-control form-control-custom text-end"|attr:"placeholder:0.00" }}
+                                        {{ form.precio_clase_suelta|add_class:"form-control form-control-custom text-end"|attr:"placeholder:0" }}
                                     </div>
                                     {% if form.precio_clase_suelta.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.precio_clase_suelta.errors }}
-                                    </div>
+                                    <div class="text-danger small mt-1">{{ form.precio_clase_suelta.errors }}</div>
                                     {% endif %}
-                                    <small class="text-muted d-block mt-1">
-                                        Precio por clase individual
-                                    </small>
+                                    <small class="text-muted d-block mt-1">Precio por clase individual</small>
                                 </div>
-                                
+
                                 <div class="alert alert-light border mt-3">
-                                    <small class="d-block mb-1">
-                                        <strong>Relación sugerida:</strong>
-                                    </small>
-                                    <small class="text-muted">
-                                        El precio de clase suelta suele ser 10-15% del precio mensual
-                                    </small>
+                                    <small class="d-block mb-1"><strong>Relación sugerida:</strong></small>
+                                    <small class="text-muted">El precio de clase suelta suele ser 10-15% del precio mensual</small>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <div class="border rounded p-4">
                                 <h6 class="border-bottom pb-2 mb-3">
-                                    <i class="fas fa-calculator me-2 text-primary"></i>
-                                    Calculadora de Precios
+                                    <i class="fas fa-calculator me-2 text-primary"></i>Calculadora de Precios
                                 </h6>
-                                
+
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Costo Operativo Estimado</label>
                                     <div class="input-group mb-2">
                                         <span class="input-group-text">$</span>
-                                        <input type="text" class="form-control form-control-custom text-end" 
-                                               id="costoOperativo" value="1500" 
-                                               oninput="calcularMargen()">
+                                        <input type="number" class="form-control form-control-custom text-end"
+                                               id="costoOperativo" value="1500" oninput="calcularMargen()">
                                     </div>
-                                    <small class="text-muted">
-                                        Costo mensual por alumno (instructor, espacio, mantenimiento)
-                                    </small>
+                                    <small class="text-muted">Costo mensual por alumno</small>
                                 </div>
-                                
+
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Alumnos Estimados</label>
                                     <div class="input-group mb-2">
-                                        <input type="number" class="form-control form-control-custom text-end" 
-                                               id="alumnosEstimados" value="15" min="1"
-                                               oninput="calcularMargen()">
+                                        <input type="number" class="form-control form-control-custom text-end"
+                                               id="alumnosEstimados" value="15" min="1" oninput="calcularMargen()">
                                         <span class="input-group-text">alumnos</span>
                                     </div>
-                                    <small class="text-muted">
-                                        Cantidad estimada de alumnos en esta disciplina
-                                    </small>
                                 </div>
-                                
+
                                 <div class="mt-4 pt-3 border-top">
                                     <div class="d-flex justify-content-between mb-2">
                                         <small>Ingresos mensuales estimados:</small>
@@ -188,37 +151,27 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Sección de Horarios (SOLO PARA EDICIÓN) -->
                     {% if form.instance.id %}
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="border rounded p-4">
                                 <h6 class="border-bottom pb-2 mb-3">
-                                    <i class="fas fa-clock me-2 text-primary"></i>
-                                    Horarios de la Disciplina
+                                    <i class="fas fa-clock me-2 text-primary"></i>Horarios de la Disciplina
                                 </h6>
-                                
-                                <!-- Botón para agregar nuevo horario -->
                                 <div class="mb-4">
                                     <a href="{% url 'horario_create' form.instance.id %}" class="btn btn-primary-custom">
                                         <i class="fas fa-plus-circle me-2"></i>Agregar Nuevo Horario
                                     </a>
                                 </div>
-                                
-                                <!-- Lista de horarios existentes -->
                                 {% if form.instance.horarios.all %}
                                 <div class="table-responsive">
                                     <table class="table table-hover">
                                         <thead>
                                             <tr>
-                                                <th>Día</th>
-                                                <th>Horario</th>
-                                                <th>Capacidad</th>
-                                                <th>Inscritos</th>
-                                                <th>Disponible</th>
-                                                <th>Estado</th>
-                                                <th>Acciones</th>
+                                                <th>Día</th><th>Horario</th><th>Capacidad</th>
+                                                <th>Inscritos</th><th>Estado</th><th>Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -235,15 +188,6 @@
                                                     {% endwith %}
                                                 </td>
                                                 <td>
-                                                    {% with inscripciones=horario.inscripcion_set.count %}
-                                                    {% with disponibles=horario.capacidad_maxima|add:"0"|add:"-"|add:inscripciones %}
-                                                    <span class="badge {% if disponibles > 0 %}bg-info{% else %}bg-danger{% endif %}">
-                                                        {{ disponibles }}
-                                                    </span>
-                                                    {% endwith %}
-                                                    {% endwith %}
-                                                </td>
-                                                <td>
                                                     {% if horario.activo %}
                                                     <span class="badge bg-success">Activo</span>
                                                     {% else %}
@@ -252,12 +196,10 @@
                                                 </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
-                                                        <a href="{% url 'horario_update' horario.id %}" 
-                                                           class="btn btn-outline-secondary" title="Editar">
+                                                        <a href="{% url 'horario_update' horario.id %}" class="btn btn-outline-secondary" title="Editar">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
-                                                        <a href="{% url 'horario_detail' horario.id %}" 
-                                                           class="btn btn-outline-primary" title="Ver detalles">
+                                                        <a href="{% url 'horario_detail' horario.id %}" class="btn btn-outline-primary" title="Ver detalles">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
                                                     </div>
@@ -277,23 +219,24 @@
                                     </a>
                                 </div>
                                 {% endif %}
-                                
-                                <!-- Estadísticas rápidas -->
+
                                 {% if form.instance.horarios.all %}
                                 <div class="row mt-4">
                                     <div class="col-md-4">
                                         <div class="border rounded p-3 text-center">
-                                            <div class="display-6 fw-bold text-primary">
-                                                {{ form.instance.horarios.count }}
-                                            </div>
+                                            <div class="display-6 fw-bold text-primary">{{ form.instance.horarios.count }}</div>
                                             <small class="text-muted">Horarios totales</small>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="border rounded p-3 text-center">
+<<<<<<< HEAD
                                             <div class="display-6 fw-bold text-success">
                                                 {{ form.instance.horarios.count }}
                                             </div>
+=======
+                                            <div class="display-6 fw-bold text-success">{{ horarios_activos|default:0 }}</div>
+>>>>>>> d914ea6 (Fix dashboard contador de disciplinas)
                                             <small class="text-muted">Horarios activos</small>
                                         </div>
                                     </div>
@@ -301,10 +244,7 @@
                                         <div class="border rounded p-3 text-center">
                                             <div class="display-6 fw-bold text-info">
                                                 {% with total=0 %}
-                                                {% for horario in form.instance.horarios.all %}
-                                                    {% with total=total|add:horario.capacidad_maxima %}
-                                                    {% endwith %}
-                                                {% endfor %}
+                                                {% for horario in form.instance.horarios.all %}{% with total=total|add:horario.capacidad_maxima %}{% endwith %}{% endfor %}
                                                 {{ total|default:0 }}
                                                 {% endwith %}
                                             </div>
@@ -317,42 +257,32 @@
                         </div>
                     </div>
                     {% endif %}
-                    
+
                     <!-- Estadísticas (solo para edición) -->
                     {% if form.instance.id %}
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="border rounded p-4">
                                 <h6 class="border-bottom pb-2 mb-3">
-                                    <i class="fas fa-chart-bar me-2 text-info"></i>
-                                    Estadísticas Actuales
+                                    <i class="fas fa-chart-bar me-2 text-info"></i>Estadísticas Actuales
                                 </h6>
                                 <div class="row">
                                     <div class="col-md-3 text-center">
-                                        <div class="display-5 fw-bold text-primary">
-                                            {{ form.instance.inscripcion_set.count }}
-                                        </div>
+                                        <div class="display-5 fw-bold text-primary">{{ form.instance.inscripcion_set.count }}</div>
                                         <small class="text-muted">Alumnos Inscritos</small>
                                     </div>
                                     <div class="col-md-3 text-center">
-                                        <div class="display-5 fw-bold text-success">
-                                            ${{ ingresos_mensuales|default:0 }}
-                                        </div>
+                                        <div class="display-5 fw-bold text-success">${{ ingresos_mensuales|default:0 }}</div>
                                         <small class="text-muted">Ingresos Mensuales</small>
                                     </div>
                                     <div class="col-md-3 text-center">
-                                        <div class="display-5 fw-bold text-warning">
-                                            {{ form.instance.horarios.count }}
-                                        </div>
+                                        <div class="display-5 fw-bold text-warning">{{ form.instance.horarios.count }}</div>
                                         <small class="text-muted">Horarios Activos</small>
                                     </div>
                                     <div class="col-md-3 text-center">
                                         <div class="display-5 fw-bold text-info">
                                             {% with total_capacidad=0 %}
-                                            {% for horario in form.instance.horarios.all %}
-                                            {% with total_capacidad=total_capacidad|add:horario.capacidad_maxima %}
-                                            {% endwith %}
-                                            {% endfor %}
+                                            {% for horario in form.instance.horarios.all %}{% with total_capacidad=total_capacidad|add:horario.capacidad_maxima %}{% endwith %}{% endfor %}
                                             {{ total_capacidad|default:0 }}
                                             {% endwith %}
                                         </div>
@@ -363,7 +293,7 @@
                         </div>
                     </div>
                     {% endif %}
-                    
+
                     <!-- Información Adicional -->
                     <div class="row">
                         <div class="col-12">
@@ -384,14 +314,14 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="card-footer bg-white">
                     <div class="d-flex justify-content-between">
                         <div>
                             {% if form.instance.id %}
-                            <a href="{% url 'admin:disciplinas_disciplina_delete' form.instance.id %}" 
+                            <a href="{% url 'admin:disciplinas_disciplina_delete' form.instance.id %}"
                                class="btn btn-danger"
-                               onclick="return confirm('¿Está seguro que desea eliminar esta disciplina? Esta acción eliminará todos los horarios asociados y no se puede deshacer.')">
+                               onclick="return confirm('¿Está seguro que desea eliminar esta disciplina?')">
                                 <i class="fas fa-trash me-2"></i>Eliminar Disciplina
                             </a>
                             {% endif %}
@@ -409,7 +339,7 @@
                 </div>
             </form>
         </div>
-        
+
         <!-- Pasos siguientes (solo para creación) -->
         {% if not form.instance.id %}
         <div class="card mt-4">
@@ -421,50 +351,37 @@
                     <div class="col-md-4 mb-3">
                         <div class="d-flex align-items-start">
                             <div class="me-3">
-                                <span class="badge bg-primary rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                    1
-                                </span>
+                                <span class="badge bg-primary rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width:36px;height:36px;">1</span>
                             </div>
                             <div>
                                 <h6 class="mb-1">Crear Horarios</h6>
-                                <p class="small text-muted mb-0">
-                                    Agrega los horarios semanales para esta disciplina
-                                </p>
+                                <p class="small text-muted mb-0">Agrega los horarios semanales para esta disciplina</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <div class="d-flex align-items-start">
                             <div class="me-3">
-                                <span class="badge bg-primary rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                    2
-                                </span>
+                                <span class="badge bg-primary rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width:36px;height:36px;">2</span>
                             </div>
                             <div>
                                 <h6 class="mb-1">Configurar Combos</h6>
-                                <p class="small text-muted mb-0">
-                                    Inclúyela en combos con otras disciplinas
-                                </p>
+                                <p class="small text-muted mb-0">Inclúyela en combos con otras disciplinas</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <div class="d-flex align-items-start">
                             <div class="me-3">
-                                <span class="badge bg-primary rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                    3
-                                </span>
+                                <span class="badge bg-primary rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width:36px;height:36px;">3</span>
                             </div>
                             <div>
                                 <h6 class="mb-1">Promocionar</h6>
-                                <p class="small text-muted mb-0">
-                                    Comparte la nueva disciplina con tus alumnos
-                                </p>
+                                <p class="small text-muted mb-0">Comparte la nueva disciplina con tus alumnos</p>
                             </div>
                         </div>
                     </div>
                 </div>
-                
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
                     <a href="{% url 'admin:disciplinas_horario_add' %}" class="btn btn-outline-primary">
                         <i class="fas fa-clock me-2"></i>Crear Horario
@@ -480,162 +397,42 @@
 </div>
 
 <script>
-    // Contador de caracteres para descripción
+    // Contador de caracteres
     const descTextarea = document.querySelector('textarea[name="descripcion"]');
     const descCounter = document.getElementById('descCounter');
-    
     if (descTextarea) {
         descTextarea.addEventListener('input', function() {
             const length = this.value.length;
             descCounter.textContent = `${length}/500 caracteres`;
-            
-            if (length > 500) {
-                descCounter.classList.remove('text-muted');
-                descCounter.classList.add('text-danger');
-            } else {
-                descCounter.classList.remove('text-danger');
-                descCounter.classList.add('text-muted');
-            }
+            descCounter.className = length > 500 ? 'text-danger' : 'text-muted';
         });
-        
-        // Inicializar contador
         descCounter.textContent = `${descTextarea.value.length}/500 caracteres`;
     }
-    
-    // Calcular margen de ganancia
+
+    // Calculadora de márgenes (solo visual, no afecta el envío)
     function calcularMargen() {
         const precioMensualInput = document.querySelector('input[name="precio_mensual"]');
-        const costoOperativo = parseFloat(document.getElementById('costoOperativo').value.replace(/[^0-9]/g, '')) || 0;
+        const costoOperativo = parseFloat(document.getElementById('costoOperativo').value) || 0;
         const alumnosEstimados = parseInt(document.getElementById('alumnosEstimados').value) || 1;
-        const precioMensual = parseFloat(precioMensualInput.value) || 0;
-        
-        // Calcular ingresos estimados
-        const ingresosEstimados = precioMensual * alumnosEstimados;
-        document.getElementById('ingresosEstimados').textContent = 
-            '$' + ingresosEstimados.toLocaleString('es-AR');
-        
-        // Calcular costos estimados
-        const costosEstimados = costoOperativo * alumnosEstimados;
-        document.getElementById('costosEstimados').textContent = 
-            '$' + costosEstimados.toLocaleString('es-AR');
-        
-        // Calcular margen
-        const margenEstimado = ingresosEstimados - costosEstimados;
-        document.getElementById('margenEstimado').textContent = 
-            '$' + margenEstimado.toLocaleString('es-AR');
-        
-        // Calcular porcentaje de margen
-        const margenPorcentaje = ingresosEstimados > 0 ? 
-            (margenEstimado / ingresosEstimados * 100) : 0;
-        document.getElementById('margenPorcentaje').textContent = 
-            margenPorcentaje.toFixed(1) + '%';
-        
-        // Color según el margen
-        const margenElement = document.getElementById('margenPorcentaje');
-        if (margenPorcentaje >= 30) {
-            margenElement.className = 'text-success';
-        } else if (margenPorcentaje >= 15) {
-            margenElement.className = 'text-primary';
-        } else if (margenPorcentaje >= 0) {
-            margenElement.className = 'text-warning';
-        } else {
-            margenElement.className = 'text-danger';
-        }
+        const precioMensual = parseFloat(precioMensualInput ? precioMensualInput.value : 0) || 0;
+
+        const ingresos = precioMensual * alumnosEstimados;
+        const costos = costoOperativo * alumnosEstimados;
+        const margen = ingresos - costos;
+        const margenPct = ingresos > 0 ? (margen / ingresos * 100) : 0;
+
+        document.getElementById('ingresosEstimados').textContent = '$' + ingresos.toLocaleString('es-AR');
+        document.getElementById('costosEstimados').textContent = '$' + costos.toLocaleString('es-AR');
+        document.getElementById('margenEstimado').textContent = '$' + margen.toLocaleString('es-AR');
+        document.getElementById('margenPorcentaje').textContent = margenPct.toFixed(1) + '%';
+
+        const el = document.getElementById('margenPorcentaje');
+        el.className = margenPct >= 30 ? 'text-success' : margenPct >= 15 ? 'text-primary' : margenPct >= 0 ? 'text-warning' : 'text-danger';
     }
-    
-    // Formatear precio mientras se escribe
-    document.querySelectorAll('input[name="precio_mensual"], input[name="precio_clase_suelta"]').forEach(input => {
-        input.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/[^0-9]/g, '');
-            if (value) {
-                value = parseInt(value, 10);
-                e.target.value = value.toLocaleString('es-AR');
-            }
-            calcularMargen();
-        });
-    });
-    
-    // Calcular precio de clase suelta automáticamente
-    const precioMensualInput = document.querySelector('input[name="precio_mensual"]');
-    const precioClaseInput = document.querySelector('input[name="precio_clase_suelta"]');
-    
-    if (precioMensualInput && precioClaseInput) {
-        precioMensualInput.addEventListener('blur', function() {
-            const precioMensual = parseFloat(this.value.replace(/[^0-9]/g, '')) || 0;
-            if (precioMensual > 0 && (!precioClaseInput.value || precioClaseInput.value === '0')) {
-                // Sugerir precio de clase suelta (10% del mensual)
-                const precioClaseSugerido = Math.round(precioMensual * 0.1);
-                precioClaseInput.value = precioClaseSugerido.toLocaleString('es-AR');
-            }
-            calcularMargen();
-        });
-    }
-    
-    // Inicializar cálculos al cargar la página
-    document.addEventListener('DOMContentLoaded', function() {
-        // Formatear precios existentes
-        if (precioMensualInput && precioMensualInput.value) {
-            let value = precioMensualInput.value.replace(/[^0-9]/g, '');
-            if (value) {
-                value = parseInt(value, 10);
-                precioMensualInput.value = value.toLocaleString('es-AR');
-            }
-        }
-        
-        if (precioClaseInput && precioClaseInput.value) {
-            let value = precioClaseInput.value.replace(/[^0-9]/g, '');
-            if (value) {
-                value = parseInt(value, 10);
-                precioClaseInput.value = value.toLocaleString('es-AR');
-            }
-        }
-        
-        // Formatear costo operativo
-        const costoInput = document.getElementById('costoOperativo');
-        if (costoInput && costoInput.value) {
-            let value = costoInput.value.replace(/[^0-9]/g, '');
-            if (value) {
-                value = parseInt(value, 10);
-                costoInput.value = value.toLocaleString('es-AR');
-            }
-        }
-        
-        calcularMargen();
-    });
-    
-    // Validar formulario antes de enviar
-    document.getElementById('disciplinaForm').addEventListener('submit', function(e) {
-        const precioMensual = parseFloat(
-            document.querySelector('input[name="precio_mensual"]').value.replace(/[^0-9]/g, '')
-        ) || 0;
-        
-        const precioClase = parseFloat(
-            document.querySelector('input[name="precio_clase_suelta"]').value.replace(/[^0-9]/g, '')
-        ) || 0;
-        
-        const nombre = document.querySelector('select[name="nombre"]').value;
-        
-        let isValid = true;
-        let errorMessage = '';
-        
-        if (!nombre) {
-            isValid = false;
-            errorMessage = 'Por favor, selecciona un nombre para la disciplina.';
-        } else if (precioMensual <= 0) {
-            isValid = false;
-            errorMessage = 'El precio mensual debe ser mayor a 0.';
-        } else if (precioClase <= 0) {
-            isValid = false;
-            errorMessage = 'El precio de clase suelta debe ser mayor a 0.';
-        } else if (precioClase >= precioMensual) {
-            isValid = false;
-            errorMessage = 'El precio de clase suelta no puede ser mayor o igual al precio mensual.';
-        }
-        
-        if (!isValid) {
-            e.preventDefault();
-            alert(errorMessage);
-        }
-    });
+
+    document.querySelector('input[name="precio_mensual"]')?.addEventListener('input', calcularMargen);
+    document.querySelector('input[name="precio_clase_suelta"]')?.addEventListener('input', calcularMargen);
+
+    document.addEventListener('DOMContentLoaded', calcularMargen);
 </script>
 {% endblock %}

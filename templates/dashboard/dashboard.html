@@ -7,72 +7,56 @@
 
 {% block extra_css %}
 <style>
-    /* Estilos específicos para dashboard */
     .dashboard-stat-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border: none;
         border-radius: 15px;
         color: white;
         padding: 25px;
         margin-bottom: 20px;
         box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        transition: transform 0.3s, box-shadow 0.3s;
         position: relative;
         overflow: hidden;
+        will-change: transform;
+        transition: box-shadow 0.3s ease;
     }
-    
+
     .dashboard-stat-card:hover {
-        transform: translateY(-5px);
         box-shadow: 0 15px 30px rgba(0,0,0,0.2);
     }
-    
+
     .dashboard-stat-card::before {
         content: '';
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
+        top: 0; left: 0; right: 0;
         height: 5px;
         background: rgba(255,255,255,0.3);
     }
-    
-    .dashboard-stat-card.primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    .dashboard-stat-card.danger {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    }
-    
-    .dashboard-stat-card.success {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    }
-    
-    .dashboard-stat-card.warning {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-    }
-    
+
+    .dashboard-stat-card.primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .dashboard-stat-card.danger  { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .dashboard-stat-card.success { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .dashboard-stat-card.warning { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+
     .stat-icon {
         position: absolute;
-        top: 20px;
-        right: 20px;
+        top: 20px; right: 20px;
         font-size: 2.5rem;
         opacity: 0.3;
     }
-    
+
     .stat-number {
         font-size: 2.5rem;
         font-weight: 700;
         margin: 10px 0;
     }
-    
+
     .stat-label {
         font-size: 0.9rem;
         opacity: 0.9;
         text-transform: uppercase;
         letter-spacing: 1px;
     }
-    
+
     .stat-change {
         font-size: 0.8rem;
         display: flex;
@@ -80,95 +64,63 @@
         gap: 5px;
         margin-top: 5px;
     }
-    
-    .stat-change.positive {
-        color: #4ade80;
-    }
-    
-    .stat-change.negative {
-        color: #f87171;
-    }
-    
+
+    .stat-change.positive { color: #4ade80; }
+    .stat-change.negative { color: #f87171; }
+
     .dashboard-card {
         border: none;
         border-radius: 15px;
         box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        transition: transform 0.3s;
         margin-bottom: 20px;
     }
-    
-    .dashboard-card:hover {
-        transform: translateY(-3px);
-    }
-    
+
     .dashboard-card .card-header {
         background: white;
         border-bottom: 2px solid #f0f0f0;
         border-radius: 15px 15px 0 0 !important;
         padding: 15px 20px;
     }
-    
+
     .dashboard-card .card-header h5 {
         margin: 0;
         color: #2c3e50;
         font-weight: 600;
     }
-    
-    .dashboard-card .card-header i {
-        color: #667eea;
-    }
-    
+
+    .dashboard-card .card-header i { color: #667eea; }
+
     .mini-stat {
         background: white;
         border-radius: 10px;
         padding: 15px;
         margin-bottom: 15px;
         border-left: 4px solid;
+        transition: box-shadow 0.2s ease;
     }
-    
-    .mini-stat.primary {
-        border-left-color: #667eea;
+
+    .mini-stat:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
-    
-    .mini-stat.success {
-        border-left-color: #10b981;
-    }
-    
-    .mini-stat.warning {
-        border-left-color: #f59e0b;
-    }
-    
-    .mini-stat.danger {
-        border-left-color: #ef4444;
-    }
-    
+
+    .mini-stat.primary { border-left-color: #667eea; }
+    .mini-stat.success { border-left-color: #10b981; }
+    .mini-stat.warning { border-left-color: #f59e0b; }
+    .mini-stat.danger  { border-left-color: #ef4444; }
+
     .mini-stat-title {
         font-size: 0.8rem;
         color: #6b7280;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    
+
     .mini-stat-value {
         font-size: 1.2rem;
         font-weight: 700;
         margin: 5px 0;
     }
-    
-    .birthday-item {
-        display: flex;
-        align-items: center;
-        padding: 10px;
-        background: #f8fafc;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        transition: background 0.2s;
-    }
-    
-    .birthday-item:hover {
-        background: #e2e8f0;
-    }
-    
+
     .birthday-avatar {
         width: 40px;
         height: 40px;
@@ -178,105 +130,30 @@
         align-items: center;
         justify-content: center;
         color: white;
-        margin-right: 12px;
         font-weight: 600;
+        flex-shrink: 0;
     }
-    
-    .access-log {
-        padding: 8px 0;
-        border-bottom: 1px solid #f1f1f1;
-    }
-    
-    .access-log:last-child {
-        border-bottom: none;
-    }
-    
-    .access-type {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        margin-right: 8px;
-    }
-    
-    .access-type.rfid {
-        background: #10b981;
-    }
-    
-    .access-type.manual {
-        background: #f59e0b;
-    }
-    
-    .access-type.denied {
-        background: #ef4444;
-    }
-    
-    .quick-action-btn {
-        background: white;
-        border: 2px solid #f1f1f1;
-        border-radius: 10px;
-        padding: 15px;
-        text-align: center;
-        transition: all 0.3s;
-        height: 100%;
-    }
-    
-    .quick-action-btn:hover {
-        border-color: #667eea;
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
-    }
-    
-    .quick-action-icon {
-        font-size: 1.5rem;
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 10px;
-    }
-    
-    .chart-container {
-        height: 200px;
-        position: relative;
-    }
-    
-    /* Animaciones */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .animate-fade-in {
-        animation: fadeIn 0.5s ease-out;
-    }
-    
-    /* Scroll personalizado */
+
     .custom-scroll {
         max-height: 300px;
         overflow-y: auto;
     }
-    
-    .custom-scroll::-webkit-scrollbar {
-        width: 4px;
+
+    .custom-scroll::-webkit-scrollbar { width: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #667eea; border-radius: 2px; }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
-    
-    .custom-scroll::-webkit-scrollbar-track {
-        background: #f1f1f1;
-    }
-    
-    .custom-scroll::-webkit-scrollbar-thumb {
-        background: #667eea;
-        border-radius: 2px;
-    }
+
+    .animate-fade-in { animation: fadeIn 0.5s ease-out; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="row animate-fade-in">
-    <!-- Estadísticas principales -->
     <div class="col-xl-3 col-md-6">
         <div class="dashboard-stat-card primary">
             <i class="fas fa-users stat-icon"></i>
@@ -288,7 +165,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-xl-3 col-md-6">
         <div class="dashboard-stat-card danger">
             <i class="fas fa-exclamation-triangle stat-icon"></i>
@@ -296,44 +173,40 @@
             <div class="stat-number">{{ total_morosos }}</div>
             <div class="stat-change">
                 {% if total_morosos > 0 %}
-                <i class="fas fa-exclamation-circle"></i>
-                Requieren atención
+                <i class="fas fa-exclamation-circle"></i> Requieren atención
                 {% else %}
-                <i class="fas fa-check-circle"></i>
-                Todos al día
+                <i class="fas fa-check-circle"></i> Todos al día
                 {% endif %}
             </div>
         </div>
     </div>
-    
+
     <div class="col-xl-3 col-md-6">
         <div class="dashboard-stat-card success">
             <i class="fas fa-money-bill-wave stat-icon"></i>
             <div class="stat-label">Ingresos del Mes</div>
             <div class="stat-number">${{ ingresos_mes|floatformat:0 }}</div>
             <div class="stat-change positive">
-                <i class="fas fa-chart-line"></i>
-                Ingresos mensuales
+                <i class="fas fa-chart-line"></i> Ingresos mensuales
             </div>
         </div>
     </div>
-    
+
     <div class="col-xl-3 col-md-6">
         <div class="dashboard-stat-card warning">
             <i class="fas fa-calendar-alt stat-icon"></i>
             <div class="stat-label">Próximos Vencimientos</div>
             <div class="stat-number">{{ vencimientos_proximos|length }}</div>
             <div class="stat-change">
-                <i class="fas fa-clock"></i>
-                En 7 días
+                <i class="fas fa-clock"></i> En 7 días
             </div>
         </div>
     </div>
 </div>
 
 <div class="row mt-4">
-    <!-- Columna izquierda: Gráficos y tablas principales -->
     <div class="col-lg-8">
+
         <!-- Próximos vencimientos -->
         <div class="dashboard-card">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -341,9 +214,7 @@
                     <h5><i class="fas fa-clock me-2"></i> Próximos Vencimientos</h5>
                     <small class="text-muted">Vencimientos en los próximos 7 días</small>
                 </div>
-                <a href="{% url 'admin:pagos_pago_changelist' %}" class="btn btn-sm btn-outline-primary">
-                    Ver todos
-                </a>
+                <a href="{% url 'admin:pagos_pago_changelist' %}" class="btn btn-sm btn-outline-primary">Ver todos</a>
             </div>
             <div class="card-body">
                 {% if vencimientos_proximos %}
@@ -354,7 +225,6 @@
                                 <th>Alumno</th>
                                 <th>Vencimiento</th>
                                 <th>Monto</th>
-                                <th>Días</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
@@ -375,17 +245,7 @@
                                 <td>{{ pago.fecha_vencimiento|date:"d/m/Y" }}</td>
                                 <td><strong class="text-primary">${{ pago.monto }}</strong></td>
                                 <td>
-                                    {% with dias=pago.fecha_vencimiento|timeuntil:hoy %}
-                                    {% if "0" in dias %}
-                                    <span class="badge bg-warning text-dark">Hoy</span>
-                                    {% else %}
-                                    <span class="badge bg-light text-dark">{{ dias|slice:":2" }} días</span>
-                                    {% endif %}
-                                    {% endwith %}
-                                </td>
-                                <td>
-                                    <a href="{% url 'admin:pagos_pago_change' pago.id %}" 
-                                       class="btn btn-sm btn-outline-primary">
+                                    <a href="{% url 'admin:pagos_pago_change' pago.id %}" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                 </td>
@@ -411,9 +271,7 @@
                     <h5><i class="fas fa-chart-pie me-2"></i> Distribución por Disciplina</h5>
                     <small class="text-muted">Alumnos e ingresos por disciplina</small>
                 </div>
-                <a href="{% url 'disciplina_list' %}" class="btn btn-sm btn-outline-primary">
-                    Ver disciplinas
-                </a>
+                <a href="{% url 'disciplina_list' %}" class="btn btn-sm btn-outline-primary">Ver disciplinas</a>
             </div>
             <div class="card-body">
                 {% if alumnos_por_disciplina %}
@@ -423,7 +281,6 @@
                             <tr>
                                 <th>Disciplina</th>
                                 <th>Alumnos</th>
-                                <th>Capacidad</th>
                                 <th>Ingresos</th>
                                 <th>Ocupación</th>
                             </tr>
@@ -431,23 +288,13 @@
                         <tbody>
                             {% for disciplina in alumnos_por_disciplina %}
                             <tr>
-                                <td>
-                                    <strong>{{ disciplina.nombre }}</strong>
-                                </td>
-                                <td>
-                                    <span class="badge bg-primary">{{ disciplina.cantidad }}</span>
-                                </td>
-                                <td>
-                                    <small class="text-muted">{{ disciplina.capacidad|default:"-" }}</small>
-                                </td>
-                                <td>
-                                    <strong class="text-success">${{ disciplina.total }}</strong>
-                                </td>
+                                <td><strong>{{ disciplina.nombre }}</strong></td>
+                                <td><span class="badge bg-primary">{{ disciplina.cantidad }}</span></td>
+                                <td><strong class="text-success">${{ disciplina.total }}</strong></td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="progress flex-grow-1 me-2" style="height: 8px;">
-                                            <div class="progress-bar bg-gradient-primary" 
-                                                 style="width: {{ disciplina.porcentaje }}%"></div>
+                                            <div class="progress-bar bg-primary" style="width: {{ disciplina.porcentaje }}%"></div>
                                         </div>
                                         <small class="text-muted">{{ disciplina.porcentaje|floatformat:0 }}%</small>
                                     </div>
@@ -466,8 +313,8 @@
                 {% endif %}
             </div>
         </div>
-    </div>
 
+    </div>
 </div>
 
 <!-- Últimos pagos -->
@@ -477,9 +324,7 @@
             <h5><i class="fas fa-history me-2"></i> Últimos Pagos Registrados</h5>
             <small class="text-muted">Registros recientes de pagos</small>
         </div>
-        <a href="{% url 'admin:pagos_pago_changelist' %}" class="btn btn-sm btn-outline-primary">
-            Ver historial completo
-        </a>
+        <a href="{% url 'admin:pagos_pago_changelist' %}" class="btn btn-sm btn-outline-primary">Ver historial completo</a>
     </div>
     <div class="card-body">
         {% if pagos_recientes %}
@@ -507,21 +352,13 @@
                             <div class="text-muted">{{ pago.alumno.telefono }}</div>
                         </td>
                         <td>{{ pago.observaciones|truncatechars:30|default:"-" }}</td>
-                        <td>
-                            <strong class="text-success">${{ pago.monto }}</strong>
-                        </td>
-                        <td>
-                            <span class="badge bg-secondary">{{ pago.metodo_pago }}</span>
-                        </td>
+                        <td><strong class="text-success">${{ pago.monto }}</strong></td>
+                        <td><span class="badge bg-secondary">{{ pago.metodo_pago }}</span></td>
                         <td>
                             {% if pago.pagado %}
-                            <span class="badge bg-success">
-                                <i class="fas fa-check me-1"></i>Pagado
-                            </span>
+                            <span class="badge bg-success"><i class="fas fa-check me-1"></i>Pagado</span>
                             {% else %}
-                            <span class="badge bg-danger">
-                                <i class="fas fa-clock me-1"></i>Pendiente
-                            </span>
+                            <span class="badge bg-danger"><i class="fas fa-clock me-1"></i>Pendiente</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -570,52 +407,4 @@
         </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Efecto de animación para las tarjetas de estadísticas
-    const statCards = document.querySelectorAll('.dashboard-stat-card');
-    statCards.forEach((card, index) => {
-        card.style.animationDelay = `${index * 0.1}s`;
-    });
-    
-    // Actualizar la fecha en tiempo real
-    function updateDateTime() {
-        const now = new Date();
-        const options = { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        };
-        const dateStr = now.toLocaleDateString('es-ES', options);
-        
-        // Si hay un elemento con id 'current-datetime', actualízalo
-        const datetimeElement = document.getElementById('current-datetime');
-        if (datetimeElement) {
-            datetimeElement.textContent = dateStr;
-        }
-    }
-    
-    // Actualizar cada minuto
-    updateDateTime();
-    setInterval(updateDateTime, 60000);
-    
-    // Efecto hover para las mini estadísticas
-    const miniStats = document.querySelectorAll('.mini-stat');
-    miniStats.forEach(stat => {
-        stat.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-3px)';
-            this.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
-        });
-        
-        stat.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-            this.style.boxShadow = 'none';
-        });
-    });
-});
-</script>
 {% endblock %}

@@ -93,8 +93,6 @@
                 </div>
             </div>
         </div>
-        
-        
     </div>
     
     <!-- Columna derecha: Disciplinas y Pagos -->
@@ -126,7 +124,8 @@
                     <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <h6 class="mb-0">Disciplinas Inscritas</h6>
-                            <a href="{% url 'admin:pagos_inscripcion_add' %}?alumno={{ alumno.id }}" class="btn btn-sm btn-custom-primary">
+                            <!-- ✅ CORREGIDO: apunta a inscripcion_rapida con alumno preseleccionado -->
+                            <a href="{% url 'inscripcion_rapida' %}?alumno={{ alumno.id }}" class="btn btn-sm btn-custom-primary">
                                 <i class="fas fa-plus me-1"></i>Nueva Inscripción
                             </a>
                         </div>
@@ -166,10 +165,14 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <a href="{% url 'admin:pagos_inscripcion_change' inscripcion.id %}" 
-                                               class="btn btn-sm btn-outline-secondary" title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
+                                            <!-- ✅ CORREGIDO: formulario para desactivar inscripción sin ir al admin -->
+                                            <form method="post" action="{% url 'inscripcion_desactivar' inscripcion.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Desactivar"
+                                                    onclick="return confirm('¿Desactivar esta inscripción?')">
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -184,7 +187,8 @@
                         <i class="fas fa-list-alt fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">No hay disciplinas inscritas</h5>
                         <p class="text-muted mb-4">Este alumno no está inscrito en ninguna disciplina.</p>
-                        <a href="{% url 'admin:pagos_inscripcion_add' %}?alumno={{ alumno.id }}" class="btn btn-custom-primary">
+                        <!-- ✅ CORREGIDO: apunta a inscripcion_rapida -->
+                        <a href="{% url 'inscripcion_rapida' %}?alumno={{ alumno.id }}" class="btn btn-custom-primary">
                             <i class="fas fa-plus-circle me-2"></i>Inscribir en Disciplina
                         </a>
                     </div>
@@ -255,15 +259,16 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <a href="{% url 'admin:pagos_pago_change' pago.id %}" 
-                                            class="btn btn-sm btn-outline-secondary" title="Ver detalles">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
+                                            <!-- ✅ CORREGIDO: botón para marcar como pagado sin ir al admin -->
                                             {% if not pago.pagado %}
-                                            <a href="{% url 'admin:pagos_pago_change' pago.id %}" 
-                                            class="btn btn-sm btn-success" title="Marcar como pagado">
-                                                <i class="fas fa-check"></i>
-                                            </a>
+                                            <form method="post" action="{% url 'pago_marcar_pagado' pago.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-success" title="Marcar como pagado">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </form>
+                                            {% else %}
+                                            <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -279,7 +284,8 @@
                         <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">No hay pagos registrados</h5>
                         <p class="text-muted mb-4">Este alumno no tiene pagos registrados en el sistema.</p>
-                        <a href="{% url 'admin:pagos_pago_add' %}?alumno={{ alumno.id }}" class="btn btn-custom-primary">
+                        <!-- ✅ CORREGIDO: apunta a la vista de registrar pago propia -->
+                        <a href="{% url 'pago_create' %}?alumno={{ alumno.id }}" class="btn btn-custom-primary">
                             <i class="fas fa-money-bill-wave me-2"></i>Registrar Primer Pago
                         </a>
                     </div>
@@ -331,9 +337,6 @@
                         <i class="fas fa-door-open fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">No hay accesos registrados</h5>
                         <p class="text-muted mb-4">Este alumno no tiene registros de acceso al gimnasio.</p>
-                        <a href="{% url 'admin:acceso_acceso_add' %}?alumno={{ alumno.id }}" class="btn btn-custom-primary">
-                            <i class="fas fa-key me-2"></i>Registrar Acceso Manual
-                        </a>
                     </div>
                 </div>
                 {% endif %}
@@ -385,7 +388,6 @@
 </div>
 
 <script>
-    // Initialize tabs
     var triggerTabList = [].slice.call(document.querySelectorAll('#alumnoTab button'))
     triggerTabList.forEach(function (triggerEl) {
         var tabTrigger = new bootstrap.Tab(triggerEl)

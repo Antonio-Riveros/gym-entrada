@@ -53,12 +53,33 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Selección de disciplina -->
-                    <div class="row mb-4">
+
+                    <!-- ✅ NUEVO: Tabs para elegir entre Disciplina individual o Combo -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <ul class="nav nav-tabs" id="inscripcionTabs">
+                                <li class="nav-item">
+                                    <button class="nav-link active" id="tab-disciplina" type="button" onclick="mostrarTab('disciplina')">
+                                        <i class="fas fa-dumbbell me-2"></i>Disciplina Individual
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link" id="tab-combo" type="button" onclick="mostrarTab('combo')">
+                                        <i class="fas fa-layer-group me-2"></i>Combo de Disciplinas
+                                        {% if combos %}
+                                        <span class="badge bg-primary ms-1">{{ combos|length }}</span>
+                                        {% endif %}
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Panel: Disciplina individual -->
+                    <div id="panel-disciplina" class="row mb-4">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Disciplina *</label>
-                            <select name="disciplina" id="disciplinaSelect" class="form-control form-control-custom" required>
+                            <select name="disciplina" id="disciplinaSelect" class="form-control form-control-custom">
                                 <option value="">Selecciona una disciplina...</option>
                                 {% for disciplina in disciplinas %}
                                 <option value="{{ disciplina.id }}" 
@@ -76,8 +97,64 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Horarios disponibles -->
+
+                    <!-- ✅ NUEVO Panel: Combos -->
+                    <div id="panel-combo" class="row mb-4" style="display:none;">
+                        <div class="col-md-12">
+                            {% if combos %}
+                            <label class="form-label fw-bold">Selecciona un Combo</label>
+                            <div class="row" id="combosGrid">
+                                {% for combo in combos %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card combo-card border h-100" 
+                                         data-combo-id="{{ combo.id }}"
+                                         data-precio="{{ combo.precio_combo }}"
+                                         onclick="seleccionarCombo({{ combo.id }}, {{ combo.precio_combo }})">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h6 class="card-title mb-0">{{ combo.nombre }}</h6>
+                                                {% if combo.descuento_aplicado %}
+                                                <span class="badge bg-success">-{{ combo.descuento_aplicado|floatformat:0 }}%</span>
+                                                {% endif %}
+                                            </div>
+                                            <p class="text-muted small mb-2">
+                                                {% for d in combo.disciplinas.all %}
+                                                    <span class="badge bg-secondary me-1">{{ d.get_nombre_display }}</span>
+                                                {% endfor %}
+                                            </p>
+                                            {% if combo.descripcion %}
+                                            <p class="small text-muted mb-2">{{ combo.descripcion }}</p>
+                                            {% endif %}
+                                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                                <strong class="text-success fs-5">${{ combo.precio_combo }}</strong>
+                                                {% if combo.descuento_aplicado %}
+                                                <small class="text-muted text-decoration-line-through">
+                                                    ${{ combo.calcular_precio_normal }}
+                                                </small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <!-- Input oculto para el combo seleccionado -->
+                            <input type="hidden" name="combo_id" id="comboHiddenInput" value="">
+                            <div id="comboSeleccionado" class="alert alert-success mt-2" style="display:none;">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Combo seleccionado: <strong id="comboNombre"></strong> — $<span id="comboPrecio"></span>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                No hay combos activos disponibles. 
+                                <a href="{% url 'combo_create' %}">Crear un combo</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Horarios disponibles (solo para disciplina individual) -->
                     <div class="row mb-4" id="horariosContainer" style="display: none;">
                         <div class="col-md-12">
                             <label class="form-label fw-bold">Horarios Disponibles</label>
@@ -87,11 +164,7 @@
                                     Los horarios con <span class="badge bg-danger">CONFLICTO</span> se superponen con otros horarios del alumno
                                 </small>
                             </div>
-                            
-                            <div id="horariosList" class="row">
-                                <!-- Los horarios se cargarán aquí -->
-                            </div>
-                            
+                            <div id="horariosList" class="row"></div>
                             <div class="form-check mt-3">
                                 <input type="checkbox" class="form-check-input" id="sinHorario" name="sin_horario" checked>
                                 <label class="form-check-label" for="sinHorario">
@@ -101,13 +174,13 @@
                         </div>
                     </div>
                     
-                    <!-- Información adicional -->
-                    <div class="row mb-4">
+                    <!-- Información de la disciplina seleccionada -->
+                    <div class="row mb-4" id="disciplinaInfoContainer">
                         <div class="col-md-12">
                             <div class="border rounded p-3">
-                                <h6 class="border-bottom pb-2 mb-3">Información de la Disciplina</h6>
+                                <h6 class="border-bottom pb-2 mb-3">Información</h6>
                                 <div id="disciplinaInfo">
-                                    <p class="text-muted mb-0">Selecciona una disciplina para ver su información</p>
+                                    <p class="text-muted mb-0">Selecciona una disciplina o combo para ver su información</p>
                                 </div>
                             </div>
                         </div>
@@ -143,7 +216,7 @@
                                 <a href="{% url 'alumno_list' %}" class="btn btn-outline-secondary">
                                     <i class="fas fa-arrow-left me-2"></i>Cancelar
                                 </a>
-                                <button type="submit" class="btn btn-primary-custom">
+                                <button type="submit" class="btn btn-custom-primary btn-lg">
                                     <i class="fas fa-check me-2"></i>Confirmar Inscripción
                                 </button>
                             </div>
@@ -158,9 +231,71 @@
 
 {% block extra_js %}
 <script>
-    // Variables globales
     let horarioSeleccionado = null;
-    
+    let tabActual = 'disciplina';
+
+    // ✅ NUEVO: Preseleccionar alumno si viene ?alumno=ID en la URL
+    document.addEventListener('DOMContentLoaded', function() {
+        const params = new URLSearchParams(window.location.search);
+        const alumnoId = params.get('alumno');
+        if (alumnoId) {
+            const select = document.getElementById('alumnoSelect');
+            select.value = alumnoId;
+            // Disparar el evento change para mostrar info
+            select.dispatchEvent(new Event('change'));
+        }
+    });
+
+    // ✅ NUEVO: Cambiar entre tab disciplina y combo
+    function mostrarTab(tab) {
+        tabActual = tab;
+
+        document.getElementById('panel-disciplina').style.display = tab === 'disciplina' ? 'flex' : 'none';
+        document.getElementById('panel-combo').style.display = tab === 'combo' ? 'flex' : 'none';
+        document.getElementById('horariosContainer').style.display = 'none';
+
+        document.getElementById('tab-disciplina').classList.toggle('active', tab === 'disciplina');
+        document.getElementById('tab-combo').classList.toggle('active', tab === 'combo');
+
+        // Limpiar selecciones al cambiar de tab
+        if (tab === 'disciplina') {
+            document.getElementById('comboHiddenInput').value = '';
+            document.getElementById('disciplinaSelect').required = true;
+        } else {
+            document.getElementById('disciplinaSelect').value = '';
+            document.getElementById('disciplinaSelect').required = false;
+            document.getElementById('precioDisciplina').value = '0';
+        }
+
+        document.getElementById('montoPago').textContent = '0';
+        document.getElementById('disciplinaInfo').innerHTML =
+            '<p class="text-muted mb-0">Selecciona una disciplina o combo para ver su información</p>';
+    }
+
+    // ✅ NUEVO: Seleccionar un combo
+    function seleccionarCombo(comboId, precio) {
+        // Desmarcar todos los combos
+        document.querySelectorAll('.combo-card').forEach(card => {
+            card.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+            card.classList.add('border');
+        });
+
+        // Marcar el seleccionado
+        const card = document.querySelector(`[data-combo-id="${comboId}"]`);
+        if (card) {
+            card.classList.remove('border');
+            card.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
+            
+            const nombre = card.querySelector('.card-title').textContent.trim();
+            document.getElementById('comboNombre').textContent = nombre;
+            document.getElementById('comboPrecio').textContent = Number(precio).toLocaleString('es-AR');
+            document.getElementById('comboSeleccionado').style.display = 'block';
+        }
+
+        document.getElementById('comboHiddenInput').value = comboId;
+        document.getElementById('montoPago').textContent = Number(precio).toLocaleString('es-AR');
+    }
+
     // Mostrar información del alumno seleccionado
     document.getElementById('alumnoSelect').addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
@@ -171,9 +306,8 @@
             document.getElementById('alumnoEmail').textContent = selectedOption.dataset.email;
             infoDiv.style.display = 'block';
             
-            // Si ya hay una disciplina seleccionada, buscar horarios
             const disciplinaId = document.getElementById('disciplinaSelect').value;
-            if (disciplinaId) {
+            if (disciplinaId && tabActual === 'disciplina') {
                 buscarHorariosDisciplina();
             }
         } else {
@@ -184,30 +318,26 @@
     // Mostrar precio de la disciplina
     document.getElementById('disciplinaSelect').addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
-        const precioInput = document.getElementById('precioDisciplina');
         
         if (this.value) {
             const precio = selectedOption.dataset.precio || 0;
-            precioInput.value = Number(precio).toLocaleString('es-AR');
+            document.getElementById('precioDisciplina').value = Number(precio).toLocaleString('es-AR');
             document.getElementById('montoPago').textContent = Number(precio).toLocaleString('es-AR');
             
-            // Buscar información de la disciplina
             cargarInfoDisciplina(this.value);
             
-            // Buscar horarios si hay un alumno seleccionado
             const alumnoId = document.getElementById('alumnoSelect').value;
             if (alumnoId) {
                 buscarHorariosDisciplina();
             }
         } else {
-            precioInput.value = '0';
+            document.getElementById('precioDisciplina').value = '0';
             document.getElementById('montoPago').textContent = '0';
             document.getElementById('disciplinaInfo').innerHTML = 
                 '<p class="text-muted mb-0">Selecciona una disciplina para ver su información</p>';
         }
     });
     
-    // Buscar horarios de la disciplina
     function buscarHorariosDisciplina() {
         const disciplinaId = document.getElementById('disciplinaSelect').value;
         const alumnoId = document.getElementById('alumnoSelect').value;
@@ -217,36 +347,24 @@
             return;
         }
         
-        // Mostrar spinner
         const horariosList = document.getElementById('horariosList');
         horariosList.innerHTML = `
             <div class="col-12 text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Cargando...</span>
-                </div>
+                <div class="spinner-border text-primary" role="status"></div>
                 <p class="text-muted mt-2">Buscando horarios disponibles...</p>
-            </div>
-        `;
+            </div>`;
         
         document.getElementById('horariosContainer').style.display = 'block';
         
-        // Hacer petición AJAX
         fetch(`/alumnos/horarios-disciplina/?disciplina_id=${disciplinaId}&alumno_id=${alumnoId}`)
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    mostrarHorarios(data.horarios);
-                } else {
-                    mostrarErrorHorarios(data.error || 'Error al cargar los horarios');
-                }
+                if (data.success) mostrarHorarios(data.horarios);
+                else mostrarErrorHorarios(data.error || 'Error al cargar los horarios');
             })
-            .catch(error => {
-                console.error('Error:', error);
-                mostrarErrorHorarios('Error de conexión');
-            });
+            .catch(() => mostrarErrorHorarios('Error de conexión'));
     }
     
-    // Mostrar horarios en la interfaz
     function mostrarHorarios(horarios) {
         const horariosList = document.getElementById('horariosList');
         
@@ -255,35 +373,27 @@
                 <div class="col-12">
                     <div class="alert alert-warning">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        Esta disciplina no tiene horarios asignados. 
-                        El alumno podrá asistir a cualquier horario disponible.
+                        Esta disciplina no tiene horarios asignados.
                     </div>
-                </div>
-            `;
+                </div>`;
             return;
         }
         
         let html = '';
-        
         horarios.forEach(horario => {
-            const disponible = horario.disponible;
-            const lleno = horario.lleno;
-            const conflicto = horario.conflicto;
-            
-            // Determinar clases CSS según estado
             let cardClass = 'border';
             let badgeClass = 'bg-secondary';
             let disabled = false;
             
-            if (lleno) {
+            if (horario.lleno) {
                 cardClass += ' border-danger bg-danger bg-opacity-10';
                 badgeClass = 'bg-danger';
                 disabled = true;
-            } else if (conflicto) {
+            } else if (horario.conflicto) {
                 cardClass += ' border-warning bg-warning bg-opacity-10';
                 badgeClass = 'bg-warning';
                 disabled = true;
-            } else if (disponible > 0) {
+            } else {
                 cardClass += ' border-success bg-success bg-opacity-10';
                 badgeClass = 'bg-success';
             }
@@ -296,58 +406,36 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h6 class="card-title mb-0">${horario.dia}</h6>
-                                <span class="badge ${badgeClass}">
-                                    ${horario.disponible}/${horario.capacidad} cupos
-                                </span>
+                                <span class="badge ${badgeClass}">${horario.disponible}/${horario.capacidad} cupos</span>
                             </div>
-                            
-                            <p class="card-text">
-                                <i class="far fa-clock me-2"></i>
-                                ${horario.hora_inicio} - ${horario.hora_fin}
-                            </p>
-                            
+                            <p class="card-text"><i class="far fa-clock me-2"></i>${horario.hora_inicio} - ${horario.hora_fin}</p>
                             <div class="d-flex justify-content-between align-items-center">
-                                <small class="text-muted">
-                                    ${horario.inscritos} inscritos
-                                </small>
-                                ${conflicto ? 
-                                    '<span class="badge bg-danger">CONFLICTO</span>' : 
-                                    (lleno ? 
-                                        '<span class="badge bg-danger">LLENO</span>' : 
-                                        '<span class="badge bg-success">DISPONIBLE</span>'
-                                    )
-                                }
+                                <small class="text-muted">${horario.inscritos} inscritos</small>
+                                ${horario.conflicto ? '<span class="badge bg-danger">CONFLICTO</span>' : 
+                                  horario.lleno ? '<span class="badge bg-danger">LLENO</span>' : 
+                                  '<span class="badge bg-success">DISPONIBLE</span>'}
                             </div>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
         });
         
         horariosList.innerHTML = html;
     }
     
     function mostrarErrorHorarios(mensaje) {
-        const horariosList = document.getElementById('horariosList');
-        horariosList.innerHTML = `
+        document.getElementById('horariosList').innerHTML = `
             <div class="col-12">
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    ${mensaje}
-                </div>
-            </div>
-        `;
+                <div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>${mensaje}</div>
+            </div>`;
     }
     
-    // Seleccionar un horario
     function seleccionarHorario(horarioId) {
-        // Desmarcar todos los horarios
         document.querySelectorAll('.horario-card').forEach(card => {
             card.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
             card.classList.add('border');
         });
         
-        // Marcar el horario seleccionado
         const selectedCard = document.querySelector(`[data-horario-id="${horarioId}"]`);
         if (selectedCard) {
             selectedCard.classList.remove('border');
@@ -357,7 +445,6 @@
         horarioSeleccionado = horarioId;
         document.getElementById('sinHorario').checked = false;
         
-        // Crear input oculto con el horario seleccionado
         let hiddenInput = document.getElementById('horarioHiddenInput');
         if (!hiddenInput) {
             hiddenInput = document.createElement('input');
@@ -369,18 +456,11 @@
         hiddenInput.value = horarioId;
     }
     
-    // Manejar checkbox de "sin horario"
     document.getElementById('sinHorario').addEventListener('change', function() {
         if (this.checked) {
             horarioSeleccionado = null;
-            
-            // Eliminar input oculto si existe
             const hiddenInput = document.getElementById('horarioHiddenInput');
-            if (hiddenInput) {
-                hiddenInput.remove();
-            }
-            
-            // Desmarcar todos los horarios
+            if (hiddenInput) hiddenInput.remove();
             document.querySelectorAll('.horario-card').forEach(card => {
                 card.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
                 card.classList.add('border');
@@ -388,22 +468,17 @@
         }
     });
     
-    // Cargar información de la disciplina
     function cargarInfoDisciplina(disciplinaId) {
-        fetch(`/disciplinas/${disciplinaId}/`)
+        fetch(`/disciplinas/api/info/${disciplinaId}/`)
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    mostrarInfoDisciplina(data);
-                }
+                if (data.success) mostrarInfoDisciplina(data);
             })
             .catch(error => console.error('Error:', error));
     }
     
     function mostrarInfoDisciplina(data) {
-        const disciplinaInfo = document.getElementById('disciplinaInfo');
-        
-        let html = `
+        document.getElementById('disciplinaInfo').innerHTML = `
             <div class="row">
                 <div class="col-md-6">
                     <p><strong>Nombre:</strong> ${data.nombre}</p>
@@ -414,48 +489,57 @@
                     <p><strong>Horarios:</strong> ${data.horarios_count}</p>
                 </div>
             </div>
-        `;
-        
-        if (data.descripcion) {
-            html += `<p><strong>Descripción:</strong> ${data.descripcion}</p>`;
-        }
-        
-        disciplinaInfo.innerHTML = html;
+            ${data.descripcion ? `<p><strong>Descripción:</strong> ${data.descripcion}</p>` : ''}`;
     }
     
     // Validar formulario antes de enviar
     document.getElementById('inscripcionForm').addEventListener('submit', function(e) {
         const alumnoId = document.getElementById('alumnoSelect').value;
-        const disciplinaId = document.getElementById('disciplinaSelect').value;
-        
-        if (!alumnoId || !disciplinaId) {
+
+        if (!alumnoId) {
             e.preventDefault();
-            alert('Por favor, selecciona un alumno y una disciplina');
+            alert('Por favor, selecciona un alumno');
             return;
         }
-        
-        // Si se seleccionó "sin horario", asegurarse de que no haya input oculto
+
+        if (tabActual === 'disciplina') {
+            const disciplinaId = document.getElementById('disciplinaSelect').value;
+            if (!disciplinaId) {
+                e.preventDefault();
+                alert('Por favor, selecciona una disciplina');
+                return;
+            }
+            // Limpiar combo
+            document.getElementById('comboHiddenInput').value = '';
+        } else {
+            const comboId = document.getElementById('comboHiddenInput').value;
+            if (!comboId) {
+                e.preventDefault();
+                alert('Por favor, selecciona un combo');
+                return;
+            }
+            // Limpiar disciplina
+            document.getElementById('disciplinaSelect').value = '';
+        }
+
         if (document.getElementById('sinHorario').checked) {
             const hiddenInput = document.getElementById('horarioHiddenInput');
-            if (hiddenInput) {
-                hiddenInput.remove();
-            }
+            if (hiddenInput) hiddenInput.remove();
         }
     });
 </script>
 
 <style>
-.horario-card {
+.horario-card, .combo-card {
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
 }
-
-.horario-card:hover:not(.border-danger):not(.border-warning) {
+.horario-card:hover:not(.border-danger):not(.border-warning),
+.combo-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
-
-.horario-card.border-primary {
+.combo-card.border-primary {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
 }

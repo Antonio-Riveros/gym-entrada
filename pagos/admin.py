@@ -13,8 +13,8 @@ class InscripcionAdmin(admin.ModelAdmin):
         ('Información de Inscripción', {
             'fields': ('alumno', 'disciplina', 'horario')
         }),
-        ('Estado y Descuentos', {
-            'fields': ('activa', 'descuento_manual')
+        ('Estado', {
+            'fields': ('activa',)
         }),
     )
 
