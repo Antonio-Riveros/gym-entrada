@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+
+{% block title %}Pagos - Sistema Gimnasio MMA{% endblock %}
+
+{% block page_title %}Gestión de Pagos{% endblock %}
+{% block page_subtitle %}Historial y control de pagos del gimnasio{% endblock %}
+
+{% block header_buttons %}
+<a href="{% url 'pago_create' %}" class="btn btn-success-custom">
+    <i class="fas fa-plus-circle me-2"></i>Registrar Pago
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+
+        <!-- Estadísticas -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Total Pagos</div>
+                    <div class="stat-value text-primary">{{ total_pagos }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Pagados</div>
+                    <div class="stat-value text-success">{{ pagos_pagados }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Pendientes</div>
+                    <div class="stat-value text-warning">{{ pagos_pendientes }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-stat">
+                    <div class="stat-label">Ingresos del Mes</div>
+                    <div class="stat-value text-info" style="font-size:1.8rem;">${{ ingresos_mes|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if pagos_vencidos > 0 %}
+        <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
+            <i class="fas fa-exclamation-triangle me-3 fa-lg"></i>
+            <div>
+                <strong>{{ pagos_vencidos }} pago{{ pagos_vencidos|pluralize }} vencido{{ pagos_vencidos|pluralize }}</strong>
+                — Hay alumnos con pagos sin saldar.
+                <a href="?estado=pendiente" class="alert-link ms-2">Ver pendientes</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Buscar alumno</label>
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control form-control-custom"
+                                   placeholder="Nombre, apellido o teléfono..."
+                                   value="{{ request.GET.search }}">
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Estado</label>
+                        <select name="estado" class="form-control form-control-custom" onchange="this.form.submit()">
+                            <option value="">Todos</option>
+                            <option value="pagado" {% if request.GET.estado == 'pagado' %}selected{% endif %}>Pagados</option>
+                            <option value="pendiente" {% if request.GET.estado == 'pendiente' %}selected{% endif %}>Pendientes</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Desde</label>
+                        <input type="date" name="fecha_desde" class="form-control form-control-custom"
+                               value="{{ request.GET.fecha_desde }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Hasta</label>
+                        <input type="date" name="fecha_hasta" class="form-control form-control-custom"
+                               value="{{ request.GET.fecha_hasta }}">
+                    </div>
+                    <div class="col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary-custom flex-fill">
+                            <i class="fas fa-filter me-1"></i>Filtrar
+                        </button>
+                        <a href="{% url 'pago_list' %}" class="btn btn-outline-secondary" title="Limpiar filtros">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tabla de pagos -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Historial de Pagos</h5>
+                <span class="badge bg-primary">{{ pagos|length }} registros</span>
+            </div>
+            <div class="card-body p-0">
+                {% if pagos %}
+                <div class="table-responsive">
+                    <table class="table table-custom mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Alumno</th>
+                                <th>Monto</th>
+                                <th>Método</th>
+                                <th>Fecha Pago</th>
+                                <th>Vencimiento</th>
+                                <th>Estado</th>
+                                <th>Observaciones</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pago in pagos %}
+                            <tr>
+                                <td><small class="text-muted">#{{ pago.id }}</small></td>
+                                <td>
+                                    <a href="{% url 'alumno_detail' pago.alumno.id %}"
+                                       class="text-decoration-none fw-semibold">
+                                        {{ pago.alumno.apellido }}, {{ pago.alumno.nombre }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <strong class="text-success">${{ pago.monto|floatformat:0 }}</strong>
+                                    {% if pago.descuento_aplicado > 0 %}
+                                    <br><small class="text-muted">- {{ pago.descuento_aplicado }}% desc.</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        {% if pago.metodo_pago == 'EFECTIVO' %}💵
+                                        {% elif pago.metodo_pago == 'TRANSFERENCIA' %}🏦
+                                        {% elif pago.metodo_pago == 'TARJETA' %}💳
+                                        {% elif pago.metodo_pago == 'MERCADO_PAGO' %}📱
+                                        {% else %}🔧{% endif %}
+                                        {{ pago.get_metodo_pago_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <small>{{ pago.fecha_pago|date:"d/m/Y" }}</small>
+                                </td>
+                                <td>
+                                    {% if pago.fecha_vencimiento %}
+                                        {% if not pago.pagado and pago.fecha_vencimiento < today %}
+                                        <small class="text-danger fw-semibold">
+                                            <i class="fas fa-exclamation-circle me-1"></i>
+                                            {{ pago.fecha_vencimiento|date:"d/m/Y" }}
+                                        </small>
+                                        {% else %}
+                                        <small class="text-muted">{{ pago.fecha_vencimiento|date:"d/m/Y" }}</small>
+                                        {% endif %}
+                                    {% else %}
+                                    <small class="text-muted">—</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if pago.pagado %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Pagado
+                                    </span>
+                                    {% else %}
+                                        {% if pago.fecha_vencimiento and pago.fecha_vencimiento < today %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times me-1"></i>Vencido
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-clock me-1"></i>Pendiente
+                                        </span>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ pago.observaciones|truncatechars:40|default:"—" }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        {% if not pago.pagado %}
+                                        <form method="post" action="{% url 'pago_marcar_pagado' pago.id %}"
+                                              class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-success"
+                                                    title="Marcar como pagado"
+                                                    onclick="return confirm('¿Marcar pago #{{ pago.id }} como pagado?')">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        <a href="{% url 'alumno_detail' pago.alumno.id %}"
+                                           class="btn btn-sm btn-outline-primary" title="Ver alumno">
+                                            <i class="fas fa-user"></i>
+                                        </a>
+                                        <a href="{% url 'pago_create' %}?alumno={{ pago.alumno.id }}"
+                                           class="btn btn-sm btn-outline-info" title="Nuevo pago para este alumno">
+                                            <i class="fas fa-plus"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginación -->
+                {% if is_paginated %}
+                <div class="d-flex justify-content-center py-3">
+                    <nav>
+                        <ul class="pagination pagination-custom mb-0">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                            </li>
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-money-bill-wave fa-4x text-muted mb-4"></i>
+                    <h5 class="text-muted mb-3">No hay pagos registrados</h5>
+                    <a href="{% url 'pago_create' %}" class="btn btn-success-custom">
+                        <i class="fas fa-plus-circle me-2"></i>Registrar Primer Pago
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

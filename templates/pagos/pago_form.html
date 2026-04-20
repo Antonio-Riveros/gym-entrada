@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Pago - Sistema Gimnasio MMA{% endblock %}
+
+{% block page_title %}Registrar Pago{% endblock %}
+{% block page_subtitle %}Cargá el pago de un alumno{% endblock %}
+
+{% block header_buttons %}
+<a href="{% url 'pago_list' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Volver a Pagos
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+
+        {% if alumno_preseleccionado %}
+        <!-- Info del alumno si viene preseleccionado -->
+        <div class="card mb-4" style="border-left: 4px solid var(--secondary-color);">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+                         style="width:50px;height:50px;flex-shrink:0;">
+                        {% if alumno_preseleccionado.foto %}
+                        <img src="{{ alumno_preseleccionado.foto.url }}"
+                             class="rounded-circle" style="width:50px;height:50px;object-fit:cover;">
+                        {% else %}
+                        <i class="fas fa-user text-primary fa-lg"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">{{ alumno_preseleccionado.apellido }}, {{ alumno_preseleccionado.nombre }}</h6>
+                        <small class="text-muted">
+                            <i class="fas fa-phone me-1"></i>{{ alumno_preseleccionado.telefono }}
+                            {% if alumno_preseleccionado.email %}
+                            &nbsp;·&nbsp;<i class="fas fa-envelope me-1"></i>{{ alumno_preseleccionado.email }}
+                            {% endif %}
+                        </small>
+                        <div class="mt-1">
+                            {% for insc in alumno_preseleccionado.inscripciones.filter.activa %}
+                            <span class="badge bg-success me-1">{{ insc.disciplina.get_nombre_display }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="ms-auto text-end">
+                        {% if alumno_preseleccionado.pagos.exists %}
+                        {% with ultimo=alumno_preseleccionado.pagos.first %}
+                        <small class="text-muted d-block">Último pago</small>
+                        <span class="badge {% if ultimo.pagado %}bg-success{% else %}bg-danger{% endif %}">
+                            ${{ ultimo.monto }} — {{ ultimo.fecha_pago|date:"d/m/Y" }}
+                        </span>
+                        {% endwith %}
+                        {% else %}
+                        <span class="badge bg-secondary">Sin pagos previos</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Formulario -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Datos del Pago</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" id="pagoForm">
+                    {% csrf_token %}
+
+                    <!-- Alumno -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-user me-1 text-muted"></i>Alumno <span class="text-danger">*</span>
+                        </label>
+                        <select name="alumno" id="alumnoSelect" class="form-control form-control-custom"
+                                required onchange="cargarInfoAlumno(this.value)">
+                            <option value="">Seleccioná un alumno...</option>
+                            {% for alumno in alumnos %}
+                            <option value="{{ alumno.id }}"
+                                {% if alumno_preseleccionado and alumno.id == alumno_preseleccionado.id %}selected{% endif %}>
+                                {{ alumno.apellido }}, {{ alumno.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Monto y descuento -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-dollar-sign me-1 text-muted"></i>Monto <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="monto" id="montoInput"
+                                       class="form-control form-control-custom"
+                                       step="0.01" min="0" required
+                                       value="{{ form.monto.value|default:'' }}"
+                                       placeholder="0.00">
+                            </div>
+                            <div id="montoSugerido" class="form-text text-info" style="display:none;">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Monto sugerido según inscripciones activas
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-percent me-1 text-muted"></i>Descuento (%)
+                            </label>
+                            <div class="input-group">
+                                <input type="number" name="descuento_aplicado" id="descuentoInput"
+                                       class="form-control form-control-custom"
+                                       step="0.01" min="0" max="100"
+                                       value="{{ form.descuento_aplicado.value|default:'0' }}"
+                                       oninput="calcularTotal()">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total calculado -->
+                    <div class="alert alert-info mb-4" id="totalCalculado" style="display:none;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-calculator me-2"></i>Total a cobrar con descuento:</span>
+                            <strong id="totalValor" class="fs-5">$0.00</strong>
+                        </div>
+                    </div>
+
+                    <!-- Método de pago y vencimiento -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-credit-card me-1 text-muted"></i>Método de Pago
+                            </label>
+                            <select name="metodo_pago" class="form-control form-control-custom">
+                                <option value="EFECTIVO" {% if not form.metodo_pago.value or form.metodo_pago.value == 'EFECTIVO' %}selected{% endif %}>
+                                    💵 Efectivo
+                                </option>
+                                <option value="TRANSFERENCIA" {% if form.metodo_pago.value == 'TRANSFERENCIA' %}selected{% endif %}>
+                                    🏦 Transferencia
+                                </option>
+                                <option value="TARJETA" {% if form.metodo_pago.value == 'TARJETA' %}selected{% endif %}>
+                                    💳 Tarjeta
+                                </option>
+                                <option value="MERCADO_PAGO" {% if form.metodo_pago.value == 'MERCADO_PAGO' %}selected{% endif %}>
+                                    📱 Mercado Pago
+                                </option>
+                                <option value="OTRO" {% if form.metodo_pago.value == 'OTRO' %}selected{% endif %}>
+                                    🔧 Otro
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-calendar-alt me-1 text-muted"></i>Fecha de Vencimiento
+                            </label>
+                            <input type="date" name="fecha_vencimiento"
+                                   class="form-control form-control-custom"
+                                   value="{{ form.fecha_vencimiento.value|date:'Y-m-d'|default:vencimiento_default }}">
+                        </div>
+                    </div>
+
+                    <!-- Observaciones -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-comment me-1 text-muted"></i>Observaciones
+                        </label>
+                        <textarea name="observaciones" class="form-control form-control-custom"
+                                  rows="2" placeholder="Opcional: cuota de mes, clase suelta, etc.">{{ form.observaciones.value|default:'' }}</textarea>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="d-flex gap-3 justify-content-end pt-2 border-top">
+                        <a href="{% url 'pago_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-success-custom px-4">
+                            <i class="fas fa-check me-2"></i>Registrar Pago
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Si hay alumno preseleccionado, cargar info automáticamente
+    document.addEventListener('DOMContentLoaded', function () {
+        const sel = document.getElementById('alumnoSelect');
+        if (sel.value) cargarInfoAlumno(sel.value);
+    });
+
+    function cargarInfoAlumno(alumnoId) {
+        if (!alumnoId) return;
+        fetch(`/alumnos/api/info-alumno/?alumno_id=${alumnoId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.alumno) {
+                    const monto = document.getElementById('montoInput');
+                    const sugerido = document.getElementById('montoSugerido');
+                    // Si la vista pasó un monto inicial, ya está en el input
+                    // Solo mostrar el aviso
+                    if (monto.value && parseFloat(monto.value) > 0) {
+                        sugerido.style.display = 'block';
+                    }
+                    calcularTotal();
+                }
+            });
+    }
+
+    function calcularTotal() {
+        const monto = parseFloat(document.getElementById('montoInput').value) || 0;
+        const descuento = parseFloat(document.getElementById('descuentoInput').value) || 0;
+        const totalDiv = document.getElementById('totalCalculado');
+        const totalVal = document.getElementById('totalValor');
+
+        if (descuento > 0 && monto > 0) {
+            const total = monto - (monto * descuento / 100);
+            totalVal.textContent = '$' + total.toFixed(2);
+            totalDiv.style.display = 'block';
+        } else {
+            totalDiv.style.display = 'none';
+        }
+    }
+
+    document.getElementById('montoInput').addEventListener('input', calcularTotal);
+</script>
+{% endblock %}

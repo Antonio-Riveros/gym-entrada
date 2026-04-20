@@ -279,7 +279,12 @@ class AlumnoListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = Alumno.objects.all().order_by('apellido', 'nombre')
+        queryset = Alumno.objects.all().order_by('apellido', 'nombre').annotate(
+            inscripciones_activas=Count(
+                'inscripciones',
+                filter=Q(inscripciones__activa=True)
+            )
+        )
 
         search_query = self.request.GET.get('search', '')
         if search_query:

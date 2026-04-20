@@ -214,7 +214,7 @@
                     <h5><i class="fas fa-clock me-2"></i> Próximos Vencimientos</h5>
                     <small class="text-muted">Vencimientos en los próximos 7 días</small>
                 </div>
-                <a href="{% url 'admin:pagos_pago_changelist' %}" class="btn btn-sm btn-outline-primary">Ver todos</a>
+                <a href="{% url 'pago_list' %}?estado=pendiente" class="btn btn-sm btn-outline-primary">Ver todos</a>
             </div>
             <div class="card-body">
                 {% if vencimientos_proximos %}
@@ -245,8 +245,13 @@
                                 <td>{{ pago.fecha_vencimiento|date:"d/m/Y" }}</td>
                                 <td><strong class="text-primary">${{ pago.monto }}</strong></td>
                                 <td>
-                                    <a href="{% url 'admin:pagos_pago_change' pago.id %}" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-edit"></i>
+                                    <a href="{% url 'pago_create' %}?alumno={{ pago.alumno.id }}"
+                                       class="btn btn-sm btn-outline-success" title="Registrar pago">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </a>
+                                    <a href="{% url 'alumno_detail' pago.alumno.id %}"
+                                       class="btn btn-sm btn-outline-primary" title="Ver alumno">
+                                        <i class="fas fa-user"></i>
                                     </a>
                                 </td>
                             </tr>
@@ -324,7 +329,7 @@
             <h5><i class="fas fa-history me-2"></i> Últimos Pagos Registrados</h5>
             <small class="text-muted">Registros recientes de pagos</small>
         </div>
-        <a href="{% url 'admin:pagos_pago_changelist' %}" class="btn btn-sm btn-outline-primary">Ver historial completo</a>
+        <a href="{% url 'pago_list' %}" class="btn btn-sm btn-outline-primary">Ver historial completo</a>
     </div>
     <div class="card-body">
         {% if pagos_recientes %}
@@ -348,12 +353,16 @@
                             <div class="text-muted">{{ pago.fecha_pago|date:"Y" }}</div>
                         </td>
                         <td>
-                            {{ pago.alumno.nombre }} {{ pago.alumno.apellido }}
+                            <a href="{% url 'alumno_detail' pago.alumno.id %}" class="text-decoration-none">
+                                {{ pago.alumno.nombre }} {{ pago.alumno.apellido }}
+                            </a>
                             <div class="text-muted">{{ pago.alumno.telefono }}</div>
                         </td>
                         <td>{{ pago.observaciones|truncatechars:30|default:"-" }}</td>
                         <td><strong class="text-success">${{ pago.monto }}</strong></td>
-                        <td><span class="badge bg-secondary">{{ pago.metodo_pago }}</span></td>
+                        <td>
+                            <span class="badge bg-secondary">{{ pago.get_metodo_pago_display }}</span>
+                        </td>
                         <td>
                             {% if pago.pagado %}
                             <span class="badge bg-success"><i class="fas fa-check me-1"></i>Pagado</span>

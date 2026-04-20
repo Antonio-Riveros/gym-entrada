@@ -67,6 +67,7 @@ class PagoListView(ListView):
             'pagos_pendientes': pagos_pendientes,
             'ingresos_mes': ingresos_mes,
             'pagos_vencidos': pagos_vencidos,
+            'today': hoy,
         })
 
         return context
@@ -85,16 +86,26 @@ class PagoCreateView(CreateView):
             try:
                 alumno = Alumno.objects.get(id=alumno_id)
                 initial['alumno'] = alumno
-
                 inscripciones_activas = Inscripcion.objects.filter(alumno=alumno, activa=True)
                 monto_sugerido = sum(i.disciplina.precio_mensual for i in inscripciones_activas)
                 initial['monto'] = monto_sugerido
-
             except Alumno.DoesNotExist:
                 pass
 
         initial['fecha_vencimiento'] = timezone.now().date() + timedelta(days=30)
         return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        alumno_id = self.request.GET.get('alumno')
+        context['alumnos'] = Alumno.objects.filter(activo=True).order_by('apellido', 'nombre')
+        if alumno_id:
+            try:
+                context['alumno_preseleccionado'] = Alumno.objects.get(id=alumno_id)
+            except Alumno.DoesNotExist:
+                pass
+        context['vencimiento_default'] = (timezone.now().date() + timedelta(days=30)).strftime('%Y-%m-%d')
+        return context
 
     def form_valid(self, form):
         form.instance.pagado = True
@@ -142,7 +153,6 @@ class ReportePagosView(ListView):
         return context
 
 
-# ✅ NUEVO: Desactivar una inscripción desde el perfil del alumno
 @login_required
 def inscripcion_desactivar(request, pk):
     inscripcion = get_object_or_404(Inscripcion, pk=pk)
@@ -154,7 +164,6 @@ def inscripcion_desactivar(request, pk):
     return redirect('alumno_detail', pk=alumno_id)
 
 
-# ✅ NUEVO: Marcar un pago como pagado desde el perfil del alumno
 @login_required
 def pago_marcar_pagado(request, pk):
     pago = get_object_or_404(Pago, pk=pk)
