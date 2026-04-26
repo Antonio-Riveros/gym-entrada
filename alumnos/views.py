@@ -276,7 +276,7 @@ class AlumnoListView(LoginRequiredMixin, ListView):
     model = Alumno
     template_name = 'alumnos/alumno_list.html'
     context_object_name = 'alumnos'
-    paginate_by = 20
+    paginate_by = 100
 
     def get_queryset(self):
         queryset = Alumno.objects.all().order_by('apellido', 'nombre').annotate(
