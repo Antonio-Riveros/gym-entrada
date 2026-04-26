@@ -16,7 +16,6 @@
     <div class="col-md-8">
 
         {% if alumno_preseleccionado %}
-        <!-- Info del alumno si viene preseleccionado -->
         <div class="card mb-4" style="border-left: 4px solid var(--secondary-color);">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -37,11 +36,6 @@
                             &nbsp;·&nbsp;<i class="fas fa-envelope me-1"></i>{{ alumno_preseleccionado.email }}
                             {% endif %}
                         </small>
-                        <div class="mt-1">
-                            {% for insc in alumno_preseleccionado.inscripciones.filter.activa %}
-                            <span class="badge bg-success me-1">{{ insc.disciplina.get_nombre_display }}</span>
-                            {% endfor %}
-                        </div>
                     </div>
                     <div class="ms-auto text-end">
                         {% if alumno_preseleccionado.pagos.exists %}
@@ -60,7 +54,6 @@
         </div>
         {% endif %}
 
-        <!-- Formulario -->
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Datos del Pago</h5>
@@ -128,31 +121,31 @@
                         </div>
                     </div>
 
-                    <!-- Método de pago y vencimiento -->
+                    <!-- Método, fecha de pago y vencimiento -->
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">
                                 <i class="fas fa-credit-card me-1 text-muted"></i>Método de Pago
                             </label>
                             <select name="metodo_pago" class="form-control form-control-custom">
-                                <option value="EFECTIVO" {% if not form.metodo_pago.value or form.metodo_pago.value == 'EFECTIVO' %}selected{% endif %}>
-                                    💵 Efectivo
-                                </option>
-                                <option value="TRANSFERENCIA" {% if form.metodo_pago.value == 'TRANSFERENCIA' %}selected{% endif %}>
-                                    🏦 Transferencia
-                                </option>
-                                <option value="TARJETA" {% if form.metodo_pago.value == 'TARJETA' %}selected{% endif %}>
-                                    💳 Tarjeta
-                                </option>
-                                <option value="MERCADO_PAGO" {% if form.metodo_pago.value == 'MERCADO_PAGO' %}selected{% endif %}>
-                                    📱 Mercado Pago
-                                </option>
-                                <option value="OTRO" {% if form.metodo_pago.value == 'OTRO' %}selected{% endif %}>
-                                    🔧 Otro
-                                </option>
+                                <option value="EFECTIVO" {% if not form.metodo_pago.value or form.metodo_pago.value == 'EFECTIVO' %}selected{% endif %}>💵 Efectivo</option>
+                                <option value="TRANSFERENCIA" {% if form.metodo_pago.value == 'TRANSFERENCIA' %}selected{% endif %}>🏦 Transferencia</option>
+                                <option value="TARJETA" {% if form.metodo_pago.value == 'TARJETA' %}selected{% endif %}>💳 Tarjeta</option>
+                                <option value="MERCADO_PAGO" {% if form.metodo_pago.value == 'MERCADO_PAGO' %}selected{% endif %}>📱 Mercado Pago</option>
+                                <option value="OTRO" {% if form.metodo_pago.value == 'OTRO' %}selected{% endif %}>🔧 Otro</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-calendar-check me-1 text-muted"></i>Fecha de Pago
+                                <span class="badge bg-info ms-1" style="font-size:0.65rem;">editable</span>
+                            </label>
+                            <input type="date" name="fecha_pago"
+                                   class="form-control form-control-custom"
+                                   value="{{ hoy|date:'Y-m-d' }}">
+                            <div class="form-text text-muted">Podés cargar pagos de meses anteriores</div>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">
                                 <i class="fas fa-calendar-alt me-1 text-muted"></i>Fecha de Vencimiento
                             </label>
@@ -168,7 +161,7 @@
                             <i class="fas fa-comment me-1 text-muted"></i>Observaciones
                         </label>
                         <textarea name="observaciones" class="form-control form-control-custom"
-                                  rows="2" placeholder="Opcional: cuota de mes, clase suelta, etc.">{{ form.observaciones.value|default:'' }}</textarea>
+                                  rows="2" placeholder="Opcional: cuota Marzo, clase suelta, etc.">{{ form.observaciones.value|default:'' }}</textarea>
                     </div>
 
                     <!-- Botones -->
@@ -188,7 +181,6 @@
 </div>
 
 <script>
-    // Si hay alumno preseleccionado, cargar info automáticamente
     document.addEventListener('DOMContentLoaded', function () {
         const sel = document.getElementById('alumnoSelect');
         if (sel.value) cargarInfoAlumno(sel.value);
@@ -202,8 +194,6 @@
                 if (data.success && data.alumno) {
                     const monto = document.getElementById('montoInput');
                     const sugerido = document.getElementById('montoSugerido');
-                    // Si la vista pasó un monto inicial, ya está en el input
-                    // Solo mostrar el aviso
                     if (monto.value && parseFloat(monto.value) > 0) {
                         sugerido.style.display = 'block';
                     }
@@ -217,7 +207,6 @@
         const descuento = parseFloat(document.getElementById('descuentoInput').value) || 0;
         const totalDiv = document.getElementById('totalCalculado');
         const totalVal = document.getElementById('totalValor');
-
         if (descuento > 0 && monto > 0) {
             const total = monto - (monto * descuento / 100);
             totalVal.textContent = '$' + total.toFixed(2);

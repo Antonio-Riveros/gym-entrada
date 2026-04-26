@@ -14,7 +14,7 @@ class PagoListView(ListView):
     model = Pago
     template_name = 'pagos/pago_list.html'
     context_object_name = 'pagos'
-    paginate_by = 30
+    paginate_by = 50
 
     def get_queryset(self):
         queryset = Pago.objects.all().select_related('alumno').order_by('-fecha_pago')
@@ -99,17 +99,28 @@ class PagoCreateView(CreateView):
         context = super().get_context_data(**kwargs)
         alumno_id = self.request.GET.get('alumno')
         context['alumnos'] = Alumno.objects.filter(activo=True).order_by('apellido', 'nombre')
+        context['hoy'] = date.today()
+        context['vencimiento_default'] = (timezone.now().date() + timedelta(days=30)).strftime('%Y-%m-%d')
         if alumno_id:
             try:
                 context['alumno_preseleccionado'] = Alumno.objects.get(id=alumno_id)
             except Alumno.DoesNotExist:
                 pass
-        context['vencimiento_default'] = (timezone.now().date() + timedelta(days=30)).strftime('%Y-%m-%d')
         return context
 
     def form_valid(self, form):
+        # Usar la fecha_pago que eligió el usuario, no la de hoy
+        fecha_pago_str = self.request.POST.get('fecha_pago')
+        if fecha_pago_str:
+            try:
+                from datetime import datetime
+                form.instance.fecha_pago = datetime.strptime(fecha_pago_str, '%Y-%m-%d').date()
+            except ValueError:
+                form.instance.fecha_pago = date.today()
+        else:
+            form.instance.fecha_pago = date.today()
+
         form.instance.pagado = True
-        form.instance.fecha_pago = timezone.now().date()
         messages.success(self.request, 'Pago registrado exitosamente.')
         return super().form_valid(form)
 
